@@ -22,18 +22,18 @@ class LogisiticRegression:
         - weights - the parameters of the model, adjusted to get the desired probability
         - w0 - an extra parameter, adjusted to get the desired probability
     """
-    def __init__(self, learning_rate: float = 0.1, n_iterations: int = 100) -> None:
+    def __init__(self, learning_rate: float = 0.1, n_iterations: int = 10) -> None:
         self.learning_rate = learning_rate
         self.n_iterations = n_iterations
         self.weights = None
-        self.w0 = None # Bias
+        self.bias = None # Bias
     
-    def _initialize_weights(self) -> None:
+    def _initialize_weights(self, n_features) -> None:
         """ 
         Initializes the weights in the binary classifer by assigning fixed values to the weights.
         """
-        self.weights = np.array([0.2, -0.3])
-        self.w0 = 0.5
+        self.weights = np.zeros(n_features)
+        self.bias = 0.5
 
     def fit(self, X_train, y_train) -> None:
         """
@@ -43,62 +43,46 @@ class LogisiticRegression:
             X_train (ndarray): The training set.
             y_train (ndarray): The corresponding probabilities for the training set. 
         """
-        self._initialize_weights()
-        total_loss = 0
+        self._initialize_weights(X_train.shape[1])
         all_train_losses = []
+        print('Starting training...')
                 
         for epoch in range(self.n_iterations):
-            total_loss = 0
+            # Forward pass (make a prediction)
+            y_hat = self._forward_pass(X_train)
             
-            # SGD (stochastic gradient descent)
-            for i in range(len(X_train)):
-                
-                # Forward pass (make a prediction)
-                y_hat = self._forward_pass(X_train[i])
-          
-                # Calculate the loss (and increment total loss)
-                loss = self._binary_cross_entropy(y_train[i], y_hat)
-                total_loss += loss
-                
-                # Backward pass
-                grad_w0, grad_w1, grad_w2 = self._backward_pass(X_train[i], y_train[i], y_hat)
-                
-                # Update weights
-                self._update_weights(grad_w0, grad_w1, grad_w2)
+            print('WE MADE A FORWARD PASS!')
+            
+            # Calculate the loss
+            loss = self._loss_function(y_train, y_hat)
+            
+            # Backward pass and update weights
+            self._update_weights(X_train, y_hat)
                 
             # Print loss metrics
             if epoch % 2 == 0:
-                print(f'Iteration {epoch} / {self.n_iterations} with total loss: {total_loss / len(X_train)}')
+                print(f'Iteration {epoch} / {self.n_iterations} with current loss: {loss}')
                 print(f'Weights : {self.weights}')
             
-            all_train_losses.append(total_loss)
+            all_train_losses.append(loss)
             
         # Visualize (and save) plot representing the loss with respect to the epochs
         self._plot_graph(list(range(self.n_iterations)), all_train_losses)  
         
     def _forward_pass(self, x):
-        z = self.w0 + np.dot(x, self.weights)
+        z = self.bias + np.dot(x, self.weights)
         return self._sigmoid(z)
-
-    def _backward_pass(self, X_train, y_train, y_hat):
-        # Backward pass (getting the necessary derivatives for the chain rule)
-        dt_loss_yhat = self._deriv_loss_prob(y_train, y_hat)
-        dt_yhat_sigmoid = self._deriv_prob_sigmoid(y_hat)
-        dt_sigmoid_w0 = 1
-        dt_sigmoid_w1 = X_train[0] # x1
-        dt_sigmoid_w2 = X_train[1] # x2
-                
-        # Gradient of loss from respective weight using chain rule
-        gradient_loss_w0 = (dt_loss_yhat * dt_yhat_sigmoid * dt_sigmoid_w0)
-        gradient_loss_w1 = (dt_loss_yhat * dt_yhat_sigmoid * dt_sigmoid_w1)
-        gradient_loss_w2 = (dt_loss_yhat * dt_yhat_sigmoid * dt_sigmoid_w2)
         
-        return gradient_loss_w0, gradient_loss_w1, gradient_loss_w2
-    
-    def _update_weights(self, gradient_loss_w0, gradient_loss_w1, gradient_loss_w2):
-        self.w0 -= self.learning_rate * gradient_loss_w0
-        self.weights[0] -= self.learning_rate * gradient_loss_w1
-        self.weights[1] -= self.learning_rate * gradient_loss_w2
+    def _update_weights(self, X, y, y_hat):
+        m = X.shape[0]
+        d_weight = (1/m) * np.dot(X.T, (y_hat - y))
+        d_bias = (1/m) * np.sum(y_hat - y)
+        self.weights -= self.learning_rate * d_weight
+        self.bias -= self.learning_rate * d_bias
+            
+    def _loss_function(self, y, y_hat):
+        m = y.shape[0]
+        return -(1/m) * np.sum(y * np.log(y_hat) + (1 - y) * np.log(1 - y_hat))
     
     def predict(self, X):
         """
@@ -112,11 +96,13 @@ class LogisiticRegression:
         Returns:
             int: the predicted probability of the input (either 0 or 1)
         """
-        z = np.dot(X, self.weights) + self.w0
+        z = np.dot(X, self.weights) + self.bias
         return np.round(self._sigmoid(z))
     
-    def evaluate(self, X):
-        pass
+    def evaluate(self, X_test, y_test):
+        y_pred = self.predict(X_test, self.weights, self.bias)
+        accuracy = accuracy_score(y_test, y_pred)
+        return accuracy
     
     def _sigmoid(self, z):
         """
@@ -129,44 +115,6 @@ class LogisiticRegression:
             Any: the predicted probability of z (either 0 or 1)
         """
         return 1 / (1 + np.exp(-z))
-    
-    def _binary_cross_entropy(self, y, y_hat):
-        """
-        Implements the binary cross entropy algorithm, a loss function used for logistic regression models to penalize misclassification.
-
-        Args:
-            y (Any): the true probability (ground truth)
-            y_hat (Any): the predicted label
-
-        Returns:
-            Any: the loss of the model
-        """
-        return -(y * np.log(y_hat) + (1 - y) * np.log(1 - y_hat))
-    
-    def _deriv_loss_prob(self, y, y_hat):
-        """
-        Calculates the derivative of the loss with respect to the predicted probability y_hat.
-
-        Args:
-            y (Any): the true probability
-            y_hat (Any): the predicted probability
-
-        Returns:
-            Any: the derivative of the loss with respect to the predicted probability
-        """
-        return -((y / y_hat) - ((1 - y) / (1 - y_hat)))
-    
-    def _deriv_prob_sigmoid(self, y_hat):
-        """
-        Calculates the derivative of the predicted probability y_hat with respect to the input of the sigmoid function z.
-
-        Args:
-            y_hat (Any): the predicted probability
-
-        Returns:
-            Any: the derivative of the predicted probability y_hat with respect to the input of the sigmoid function
-        """
-        return y_hat * (1 - y_hat)
     
     def _plot_graph(self, list_epochs, list_total_loss):
         """
@@ -185,11 +133,21 @@ class LogisiticRegression:
         plt.show()
         
 # Running the classifier
+import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+
+vectorizer = CountVectorizer()
+
+df = pd.read_csv('moviesense/data/cleaned_movie_reviews.csv')
+X = vectorizer.fit_transform(df['review'])
+y = df['sentiment']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+X_train, X_test = X_train.toarray(), X_test.toarray()
+
+print(type(X_train), type(y_train))
+print(X_train.shape)
+
 classifer = LogisiticRegression()
 classifer.fit(X_train, y_train) 
-
-y_pred = []
-for i in range(len(X_test)):
-    y_pred.append(classifer.predict(X_test[i]))
-
-print(f'Accuracy score: {accuracy_score(y_true=y_test, y_pred=y_pred)}')
