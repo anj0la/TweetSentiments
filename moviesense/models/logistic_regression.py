@@ -1,21 +1,16 @@
+"""
+File: logistic_regression.py
+
+Author: Anjola Aina
+Date Modified: October 18th, 2024
+
+Description:
+
+This file contains the LogisticRegression class which is used to implement a binary classifier with a sigmoid activation function.
+"""
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
-
-num_samples_per_class = 100
-
-np.random.seed(0)
-X1 = np.random.randn(num_samples_per_class, 2) + np.array([2, 2])
-X2 = np.random.randn(num_samples_per_class, 2) + np.array([-2, -2])
-X = np.vstack([X1, X2])
-y = np.array([0] * num_samples_per_class + [1] * num_samples_per_class)
-
-shuffle_idx = np.random.permutation(len(X))
-X = X[shuffle_idx]
-y = y[shuffle_idx]
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
 class LogisiticRegression:
     """
@@ -26,20 +21,8 @@ class LogisiticRegression:
         - n_iterations - the number of iterations to go through all of the training examples ( known as epochs) 
         - weights - the parameters of the model, adjusted to get the desired probability
         - w0 - an extra parameter, adjusted to get the desired probability
-        
-    Public Methods:
-        - fit(inputs, actual_labels) -> trains the perceptron on a training set and the corresponding labels that each training example should map to
-        - predict(input) -> given a sentence, returns the perceptron's prediction (positive or negative)
     """
-    
     def __init__(self, learning_rate=0.1, n_iterations=100):
-        """
-        Constructs all of the necessary attributes for the Binary Classifier object.
-        
-        Args:
-            - learning_rate - the learning rate to be applied to the model. If no value is specified, the default learning rate is 0.1
-            - n_iterations - the number of iterations (epochs) that the model will go through to learn the labels. If no value is specified, the default value is 100
-        """
         self.learning_rate = learning_rate
         self.n_iterations = n_iterations
         self.weights = None
@@ -63,54 +46,35 @@ class LogisiticRegression:
         self._initialize_weights()
         total_loss = 0
         list_total_loss = []
-        list_epochs = []
                 
         for epoch in range(self.n_iterations):
-            # Start the loop
             total_loss = 0
+            
             # SGD (stochastic gradient descent)
             for i in range(len(Xt)):
                 
                 # Forward pass (make a prediction)
-                #z = self.w0 + np.dot(Xt[i], self.weights)
-                #y_hat = self._sigmoid(z)
                 y_hat = self._forward_pass(Xt[i])
           
                 # Calculate the loss (and increment total loss)
                 loss = self._binary_cross_entropy(yt[i], y_hat)
                 total_loss += loss
                 
+                # Backward pass
                 grad_w0, grad_w1, grad_w2 = self._backward_pass(Xt[i], yt[i], y_hat)
                 
-                # # backward pass (getting the necessary derivatives for the chain rule)
-                # dt_loss_yhat = self._deriv_loss_prob(yt[i], y_hat)
-                # dt_yhat_sigmoid = self._deriv_prob_sigmoid(y_hat)
-                # dt_sigmoid_w0 = 1
-                # dt_sigmoid_w1 = Xt[i][0] # x1
-                # dt_sigmoid_w2 = Xt[i][1] # x2
-                
-                # # gradient of loss from respective weight using chain rule
-                # gradient_loss_w0 = (dt_loss_yhat * dt_yhat_sigmoid * dt_sigmoid_w0)
-                # gradient_loss_w1 = (dt_loss_yhat * dt_yhat_sigmoid * dt_sigmoid_w1)
-                # gradient_loss_w2 = (dt_loss_yhat * dt_yhat_sigmoid * dt_sigmoid_w2)
-                
+                # Update weights
                 self._update_weights(grad_w0, grad_w1, grad_w2)
                 
-                # updating weights
-                # self.w0 -= self.learning_rate * gradient_loss_w0
-                # self.weights[0] -= self.learning_rate * gradient_loss_w1
-                # self.weights[1] -= self.learning_rate * gradient_loss_w2
-                
+            # Print loss metrics
             if epoch % 2 == 0:
                 print(f'Iteration {epoch} / {self.n_iterations} with total loss: {total_loss / len(Xt)}')
                 print(f'Weights : {self.weights}')
             
-            # to plot the loss as a function of the epochs (visualizing the loss)
             list_total_loss.append(total_loss)
-            list_epochs.append(epoch)
             
-        # after reaching the max number of iterations (= epochs), visualize the loss with respect to the epochs with a plot
-        self._plot_graph(list_epochs, list_total_loss)  
+        # Visualize (and save) plot representing the loss with respect to the epochs
+        self._plot_graph(list(range(self.n_iterations)), list_total_loss)  
         
     def _forward_pass(self, x):
         z = self.w0 + np.dot(x, self.weights)
@@ -217,6 +181,7 @@ class LogisiticRegression:
         ax.set_xlabel('Number of epochs')
         ax.set_ylabel('Total loss')
         ax.set_title('Binary Cross Entropy Loss Function as a Function of Epochs')
+        plt.savefig('logistic_regression_loss.png')
         plt.show()
         
 # Running the classifier

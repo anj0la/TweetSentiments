@@ -2,19 +2,18 @@
 File: cbow.py
 
 Author: Anjola Aina
-Date Modified: October 13th, 2024
+Date Modified: October 18th, 2024
 
 Description:
 
-This file contains the CBOW class which is used to implement the continous bag of words (CBOW) algorithm. It contains the following functions:
-    - forward(x) -> probability distribution over vocab, with highest value giving the prediction for the given input x
+This file contains the CBOW class which is used to implement the continous bag of words (CBOW) algorithm.
 """
 import torch
 import torch.nn as nn
 
 class CBOW(nn.Module):
     """
-    This class implements the CBOW model. It inherits all attributes from its base class, the Module class.
+    Implements the CBOW model. It inherits all attributes from its base class, the Module class.
     It creates the embedding and MLP layers, along with the ReLU activiation function.
     """
     def __init__(self, vocab_size: int, embedding_dim: int = 100, hidden_size: int = 200):
@@ -40,7 +39,7 @@ class CBOW(nn.Module):
         """
         # 4D result vector (batch_size, seq_len, vocab_size, dim_size)
         embeddings = self.embedding(x)  
-        # Geting average embeddings across vocabulary
+        # Get average embeddings across vocabulary
         average_embeddings = torch.mean(embeddings, dim=2)  
         hidden_output = self.relu(self.hidden(average_embeddings))
         output = self.output(hidden_output)
