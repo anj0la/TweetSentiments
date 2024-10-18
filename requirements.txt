@@ -1,0 +1,12 @@
+numpy
+torch
+pandas
+nltk
+scikit-learn
+python-dotenv
+pytest
+emoji
+hatchling
+wheel
+hatch
+matplotlib
