@@ -22,71 +22,71 @@ class LogisiticRegression:
         - weights - the parameters of the model, adjusted to get the desired probability
         - w0 - an extra parameter, adjusted to get the desired probability
     """
-    def __init__(self, learning_rate=0.1, n_iterations=100):
+    def __init__(self, learning_rate: float = 0.1, n_iterations: int = 100) -> None:
         self.learning_rate = learning_rate
         self.n_iterations = n_iterations
         self.weights = None
         self.w0 = None # Bias
     
-    def _initialize_weights(self):
+    def _initialize_weights(self) -> None:
         """ 
         Initializes the weights in the binary classifer by assigning fixed values to the weights.
         """
         self.weights = np.array([0.2, -0.3])
         self.w0 = 0.5
 
-    def fit(self, Xt, yt):
+    def fit(self, X_train, y_train) -> None:
         """
         Trains the binary classifier on the given training set (Xt) and corresponding probabilities (yt).
 
         Args:
-            Xt (ndarray): the training set 
-            yt (ndarray): the corresponding probabilities for the training set 
+            X_train (ndarray): The training set.
+            y_train (ndarray): The corresponding probabilities for the training set. 
         """
         self._initialize_weights()
         total_loss = 0
-        list_total_loss = []
+        all_train_losses = []
                 
         for epoch in range(self.n_iterations):
             total_loss = 0
             
             # SGD (stochastic gradient descent)
-            for i in range(len(Xt)):
+            for i in range(len(X_train)):
                 
                 # Forward pass (make a prediction)
-                y_hat = self._forward_pass(Xt[i])
+                y_hat = self._forward_pass(X_train[i])
           
                 # Calculate the loss (and increment total loss)
-                loss = self._binary_cross_entropy(yt[i], y_hat)
+                loss = self._binary_cross_entropy(y_train[i], y_hat)
                 total_loss += loss
                 
                 # Backward pass
-                grad_w0, grad_w1, grad_w2 = self._backward_pass(Xt[i], yt[i], y_hat)
+                grad_w0, grad_w1, grad_w2 = self._backward_pass(X_train[i], y_train[i], y_hat)
                 
                 # Update weights
                 self._update_weights(grad_w0, grad_w1, grad_w2)
                 
             # Print loss metrics
             if epoch % 2 == 0:
-                print(f'Iteration {epoch} / {self.n_iterations} with total loss: {total_loss / len(Xt)}')
+                print(f'Iteration {epoch} / {self.n_iterations} with total loss: {total_loss / len(X_train)}')
                 print(f'Weights : {self.weights}')
             
-            list_total_loss.append(total_loss)
+            all_train_losses.append(total_loss)
             
         # Visualize (and save) plot representing the loss with respect to the epochs
-        self._plot_graph(list(range(self.n_iterations)), list_total_loss)  
+        self._plot_graph(list(range(self.n_iterations)), all_train_losses)  
         
     def _forward_pass(self, x):
         z = self.w0 + np.dot(x, self.weights)
         return self._sigmoid(z)
 
-    def _backward_pass(self, Xt, yt, y_hat):
+    def _backward_pass(self, X_train, y_train, y_hat):
         # Backward pass (getting the necessary derivatives for the chain rule)
-        dt_loss_yhat = self._deriv_loss_prob(yt, y_hat)
+        dt_loss_yhat = self._deriv_loss_prob(y_train, y_hat)
         dt_yhat_sigmoid = self._deriv_prob_sigmoid(y_hat)
         dt_sigmoid_w0 = 1
-        dt_sigmoid_w1 = Xt[0] # x1
-        dt_sigmoid_w2 = Xt[1] # x2
+        dt_sigmoid_w1 = X_train[0] # x1
+        dt_sigmoid_w2 = X_train[1] # x2
                 
         # Gradient of loss from respective weight using chain rule
         gradient_loss_w0 = (dt_loss_yhat * dt_yhat_sigmoid * dt_sigmoid_w0)
@@ -115,7 +115,7 @@ class LogisiticRegression:
         z = np.dot(X, self.weights) + self.w0
         return np.round(self._sigmoid(z))
     
-    def predictions(self, X):
+    def evaluate(self, X):
         pass
     
     def _sigmoid(self, z):
