@@ -8,8 +8,13 @@ Description:
 
 This file contains the LogisticRegression class which is used to implement a binary classifier with a sigmoid activation function.
 """
+import joblib
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 class LogisiticRegression:
@@ -22,7 +27,7 @@ class LogisiticRegression:
         - weights - the parameters of the model, adjusted to get the desired probability
         - w0 - an extra parameter, adjusted to get the desired probability
     """
-    def __init__(self, lr: float = 0.1, epochs: int = 200, batch_size: int = 64) -> None:
+    def __init__(self, lr: float = 0.1, epochs: int = 10, batch_size: int = 64) -> None:
         self.lr = lr
         self.epochs = epochs
         self.weights = None
@@ -35,88 +40,6 @@ class LogisiticRegression:
         """
         self.weights = np.zeros(n_features)
         self.bias = 0.5
-
-    def fit(self, X_train, y_train, X_val, y_val):
-        self._initialize_weights(X_train.shape[1])
-        all_train_losses = []
-        all_val_losses = []
-        all_val_accurary = []
-        num_batches = X_train.shape[0] // self.batch_size
-        
-        for epoch in range(self.epochs):
-            
-            print(f'Starting epoch {epoch + 1}...')
-            
-            # Generate batch indices and shuffle them
-            batch_indices = np.arange(num_batches)
-            np.random.shuffle(batch_indices)
-            
-            # Reset loss after every epoch
-            epoch_loss = 0
-            
-            for i in batch_indices:
-                # Get the mini-batch
-                start_i = i * self.batch_size
-                end_i = start_i + self.batch_size
-                X_batch = X_train[start_i:end_i]
-                y_batch = y_train[start_i:end_i]
-                
-                # Forward pass
-                y_hat = self._forward_pass(X_batch)
-                
-                # Compute the loss for current batch
-                batch_loss = self._loss_function(y_batch, y_hat)
-                epoch_loss += batch_loss
-                
-                # Update the weights for current batch
-                self._update_weights(X_batch, y_batch, y_hat)
-                
-            val_loss, val_accurary = self._evaluate(X_val, y_val)
-            
-            # Get predicted labels
-            predicted_labels = [1 if pred >= 0.5 else 0 for pred in y_hat]
-        
-            # Compute average loss and accuracy        
-            avg_loss = epoch_loss / num_batches
-            train_accuracy = accuracy_score(y_true=y_train, y_pred=predicted_labels)
-
-            # Append train, val losses and accurary
-            all_train_losses.append(avg_loss)
-            all_val_losses.append(val_loss)
-            all_val_accurary.append(val_accurary)
-            
-            print(f'Epoch {epoch + 1} finished with average loss: {avg_loss}')
-
-            
-            # # Forward pass (make a prediction)
-            # y_hat = self._forward_pass(X_train)
-            
-            # print('WE MADE A FORWARD PASS!')
-            
-            # #print(f'type of y_train: {type(y_train)}, type of y_hat: {type(y_hat)}')
-            # #print(f'y_train[:5]: {y_train[:5]}, y_hat[:5]: {y_hat[:5]}')
-            # #print(f'y_train type: {y_train.dtype}, y_hat type: {y_hat.dtype}')
-
-            # # Calculate the loss
-            # loss = self._loss_function(y_train, y_hat)
-            
-            # print('WE CALCLUATED THE LOSS!')
-            
-            # # Backward pass and update weights
-            # self._update_weights(X_train, y_train, y_hat)
-            
-            # print('WE UPDATED THE WEIGHTS!')
-                
-            # Print loss metrics
-            # print(f'Epoch {epoch + 1} / {self.epochs}\nCurrent loss: {loss}')
-            # # print(f'Weights : {self.weights}')
-            
-            # all_train_losses.append(loss)
-            
-        # Visualize (and save) plots
-        x_axis = list(range(1, self.epochs + 1))
-        self._plot_loss(x_axis, all_train_losses, all_val_losses, self.lr)  
-        self._plot_accuracy(x_axis, all_val_accurary, self.lr)  
         
     def _forward_pass(self, x):
         z = self.bias + np.dot(x, self.weights)
@@ -141,7 +64,7 @@ class LogisiticRegression:
         y_hat = self._forward_pass(X_val)
         
         # Compute the loss
-        avg_loss = self._loss_function(y_val, y_hat)
+        loss = self._loss_function(y_val, y_hat)
         
         # Predicted labels
         predicted_labels = [1 if pred >= 0.5 else 0 for pred in y_hat]
@@ -149,28 +72,7 @@ class LogisiticRegression:
         # Compute accuracy
         accuracy = accuracy_score(y_true=y_val, y_pred=predicted_labels)
         
-        return avg_loss, accuracy
-
-    
-    def predict(self, X):
-        """
-        Predicts the probability (output either 0 or 1) for a given input X, by using the sigmoid function.
-        As the sigmoid function may give a decimal value, we use np.round so that values over 0.5 (inclusive) are rounded up to 1,
-        and values less than 0.5 (exclusive) are rounded down to 0.
-
-        Args:
-            X (ndarray): The input to make a prediction on.
-
-        Returns:
-            int: The predicted probability of the input (either 0 or 1).
-        """
-        z = np.dot(X, self.weights) + self.bias
-        return np.round(self._sigmoid(z))
-    
-    def evaluate(self, X_test, y_test):
-        y_pred = self.predict(X_test, self.weights, self.bias)
-        accuracy = accuracy_score(y_test, y_pred)
-        return accuracy
+        return loss, accuracy
     
     def _sigmoid(self, z):
         """
@@ -184,7 +86,7 @@ class LogisiticRegression:
         """
         return 1 / (1 + np.exp(-z))
     
-    def _plot_accuracy(self, x_axis, val_accuracy, y_label, lr):
+    def _plot_accuracy(self, x_axis, val_accuracy):
         """
         This function plots a graph that visualizes how the loss decreases over the epochs. That is, as the epochs increase, the loss decreases.
 
@@ -199,15 +101,15 @@ class LogisiticRegression:
         
         # Set labels and title
         ax.set_xlabel('Number of Epochs')
-        ax.set_ylabel(y_label)
-        ax.set_title(f'{y_label} as a Function of Epochs')
+        ax.set_ylabel('Accuracy')
+        ax.set_title(f'Accuracy as a Function of Epochs')
 
         # Save the plot
-        plt.savefig(f'moviesense/figures/{y_label.lower()}_epoch_{len(x_axis)}_lr_{lr}.png')
+        plt.savefig(f'moviesense/figures/accuracy_epoch_{len(x_axis)}_lr_{self.lr}.png')
 
         # plt.show()
         
-    def _plot_loss(self, x_axis, train_losses, val_losses, y_label, lr):
+    def _plot_loss(self, x_axis, train_losses, val_losses):
         """
         This function plots a graph that visualizes how the loss decreases over the epochs
         for both the training and validation sets.
@@ -229,28 +131,118 @@ class LogisiticRegression:
 
         # Set labels and title
         ax.set_xlabel('Number of Epochs')
-        ax.set_ylabel(y_label)
-        ax.set_title(f'{y_label} as a Function of Epochs')
+        ax.set_ylabel('Total Loss')
+        ax.set_title(f'Loss as a Function of Epochs')
 
         # Add legend to distinguish between train/validation
         ax.legend()
 
         # Save the plot
-        plt.savefig(f'moviesense/figures/{y_label.lower()}_epoch_{len(x_axis)}_lr_{lr}.png')
+        plt.savefig(f'moviesense/figures/loss_epoch_{len(x_axis)}_lr_{self.lr}.png')
         
         # plt.show()
+        
+    def _save_model(self):
+        np.save('movie_sense/data/models/logistic_regression/weights.npy', self.weights)
+        np.save('movie_sense/data/models/logistic_regression/bias.npy', np.array(self.bias))
+
+    def fit(self, X_train, y_train, X_val, y_val):
+        self._initialize_weights(X_train.shape[1])
+        all_train_losses = []
+        all_val_losses = []
+        all_val_accuracy = []
+        num_batches = X_train.shape[0] // self.batch_size
+        
+        for epoch in range(self.epochs):
+            
+            print(f'Starting epoch {epoch + 1}...')
+            
+            # Generate batch indices and shuffle them
+            batch_indices = np.arange(num_batches)
+            np.random.shuffle(batch_indices)
+            
+            # Reset loss and labels after every epoch
+            epoch_loss = 0
+            total_correct = 0
+            total_samples = 0
+            
+            for i in batch_indices:
+                # Get the mini-batch
+                start_i = i * self.batch_size
+                end_i = start_i + self.batch_size
+                X_batch = X_train[start_i:end_i]
+                y_batch = y_train[start_i:end_i]
+                
+                # Forward pass
+                y_hat = self._forward_pass(X_batch)
+                
+                # Compute predictions and accuracy for the current batch
+                batch_predicted_labels = [1 if pred >= 0.5 else 0 for pred in y_hat]
+                total_correct += sum(1 for true, pred in zip(y_batch, batch_predicted_labels) if true == pred)
+                total_samples += len(y_batch)
+                
+                # Compute the loss for current batch
+                batch_loss = self._loss_function(y_batch, y_hat)
+                epoch_loss += batch_loss
+                
+                # Update the weights for current batch
+                self._update_weights(X_batch, y_batch, y_hat)
+                
+            # Compute average loss and accuracy        
+            avg_loss = epoch_loss / num_batches
+            train_accuracy = total_correct / total_samples
+
+            # Get validaation loss and accuracy
+            val_loss, val_accuracy = self._evaluate(X_val, y_val)
+
+            # Append train, val losses and accurary
+            all_train_losses.append(avg_loss)
+            all_val_losses.append(val_loss)
+            all_val_accuracy.append(val_accuracy)
+            
+            # Print train and val metrics
+            print(f'\t Epoch: {epoch + 1} out of {self.epochs}')
+            print(f'\t Train Loss: {avg_loss:.3f} | Train Acc: {train_accuracy * 100:.2f}%')
+            print(f'\t Valid Loss: {val_loss:.3f} | Valid Acc: {val_accuracy * 100:.2f}%')
+            
+        # Visualize (and save) plots
+        x_axis = list(range(1, self.epochs + 1))
+        self._plot_loss(x_axis, all_train_losses, all_val_losses)  
+        self._plot_accuracy(x_axis, all_val_accuracy)  
+        
+        # Save the weights and bias to be used for predictions
+        # self._save_model()
+
+    def predict(self, X):
+        """
+        Predicts the probability (output either 0 or 1) for a given input X, by using the sigmoid function.
+        As the sigmoid function may give a decimal value, we use np.round so that values over 0.5 (inclusive) are rounded up to 1,
+        and values less than 0.5 (exclusive) are rounded down to 0.
+
+        Args:
+            X (ndarray): The input to make a prediction on.
+
+        Returns:
+            int: The predicted probability of the input (either 0 or 1).
+        """
+        z = np.dot(X, self.weights) + self.bias
+        return np.round(self._sigmoid(z))
+    
+    def evaluate(self, X_test, y_test):
+        y_pred = self.predict(X_test, self.weights, self.bias)
+        accuracy = accuracy_score(y_test, y_pred)
+        return accuracy
 
         
 # Running the classifier
-import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
 
 vectorizer = CountVectorizer()
 le = LabelEncoder()
 
-df = pd.read_csv('moviesense/data/cleaned_movie_reviews.csv')
+joblib.dump(vectorizer, 'movie_sense/data/models/logistic_regression/vectorizer.pkl')
+joblib.dump(vectorizer, 'movie_sense/data/models/logistic_regression/le.pkl')
+
+df = pd.read_csv('moviesense/data/reviews/cleaned_movie_reviews.csv')
 X = vectorizer.fit_transform(df['review'])
 y = le.fit_transform(df['sentiment'].values)
 
