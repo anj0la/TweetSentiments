@@ -1,16 +1,16 @@
 import joblib
 import pandas as pd
-from moviesense.models.logistic_regression import LogisiticRegression
+from models.logistic_regression import LogisiticRegression
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 
-def train_logisitic_model(lr: float = 0.1, epochs: int = 50, batch_size: int = 64):
+def train_logisitic_model(lr: float = 0.1, epochs: int = 10, batch_size: int = 64):
     vectorizer = CountVectorizer()
     le = LabelEncoder()
 
-    joblib.dump(vectorizer, 'movie_sense/data/models/logistic_regression/vectorizer.pkl')
-    joblib.dump(vectorizer, 'movie_sense/data/models/logistic_regression/le.pkl')
+    joblib.dump(vectorizer, 'moviesense/data/models/vectorizer.pkl')
+    joblib.dump(vectorizer, 'moviesense/data/models/le.pkl')
 
     df = pd.read_csv('moviesense/data/reviews/cleaned_movie_reviews.csv')
     X = vectorizer.fit_transform(df['review'])
@@ -26,6 +26,9 @@ def train_logisitic_model(lr: float = 0.1, epochs: int = 50, batch_size: int = 6
 
     classifer = LogisiticRegression(lr=lr, epochs=epochs, batch_size=batch_size)
     classifer.fit(X_train, y_train, X_val, y_val) 
+    
+    X_test = X_test.toarray()
+    
     accuracy = classifer.evaluate(X_test, y_test)
     print(f'Test Acc: {accuracy * 100:.2f}')
     
