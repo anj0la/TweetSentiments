@@ -36,22 +36,25 @@ class LogisiticRegression:
         self.weights = np.zeros(n_features)
         self.bias = 0.5
 
-    def fit(self, X_train, y_train):
+    def fit(self, X_train, y_train, X_val, y_val):
         self._initialize_weights(X_train.shape[1])
         all_train_losses = []
+        all_val_losses = []
+        all_val_accurary = []
         num_batches = X_train.shape[0] // self.batch_size
         
         for epoch in range(self.epochs):
             
             print(f'Starting epoch {epoch + 1}...')
             
-            # Shuffle the data at the start of each epoch
-            indices = np.random.permutation(X_train.shape[0])
-            X_train, y_train = X_train[indices], y_train[indices]
+            # Generate batch indices and shuffle them
+            batch_indices = np.arange(num_batches)
+            np.random.shuffle(batch_indices)
             
+            # Reset loss after every epoch
             epoch_loss = 0
             
-            for i in range(num_batches):
+            for i in batch_indices:
                 # Get the mini-batch
                 start_i = i * self.batch_size
                 end_i = start_i + self.batch_size
@@ -67,13 +70,23 @@ class LogisiticRegression:
                 
                 # Update the weights for current batch
                 self._update_weights(X_batch, y_batch, y_hat)
+                
+            val_loss, val_accurary = self._evaluate(X_val, y_val)
             
-            # Average loss for the epoch
+            # Get predicted labels
+            predicted_labels = [1 if pred >= 0.5 else 0 for pred in y_hat]
+        
+            # Compute average loss and accuracy        
             avg_loss = epoch_loss / num_batches
+            train_accuracy = accuracy_score(y_true=y_train, y_pred=predicted_labels)
+
+            # Append train, val losses and accurary
             all_train_losses.append(avg_loss)
+            all_val_losses.append(val_loss)
+            all_val_accurary.append(val_accurary)
             
             print(f'Epoch {epoch + 1} finished with average loss: {avg_loss}')
-            
+
             
             # # Forward pass (make a prediction)
             # y_hat = self._forward_pass(X_train)
@@ -114,9 +127,43 @@ class LogisiticRegression:
         self.weights -= self.lr * d_weight
         self.bias -= self.lr * d_bias
             
-    def _loss_function(self, y_train, y_hat):
-        m = y_train.shape[0]
-        return -(1 / m) * np.sum(y_train * np.log(y_hat) + (1 - y_train) * np.log(1 - y_hat))
+    def _loss_function(self, y, y_hat):
+        # Clip y_hat to avoid log(0)
+        y_hat = np.clip(y_hat, 1e-10, 1 - 1e-10)
+        
+        m = y.shape[0]
+        return -(1 / m) * np.sum(y * np.log(y_hat) + (1 - y) * np.log(1 - y_hat))
+    
+    def _evaluate(self, X_val, y_val):
+        num_batches = X_val.shape[0] // self.batch_size
+        total_loss = 0
+        
+        # Generate batch indices and shuffle them
+        batch_indices = np.arange(num_batches)
+        np.random.shuffle(batch_indices)
+   
+        for i in batch_indices:
+            # Get the mini-batch
+            start_i = i * self.batch_size
+            end_i = start_i + self.batch_size
+            X_batch = X_val[start_i:end_i]
+            y_batch = y_val[start_i:end_i]
+                
+            # Forward pass
+            y_hat = self._forward_pass(X_batch)
+                
+            # Compute the loss for current batch
+            batch_loss = self._loss_function(y_batch, y_hat)
+            total_loss += batch_loss
+            
+        # Get predicted labels
+        predicted_labels = [1 if pred >= 0.5 else 0 for pred in y_hat]
+        
+        # Compute average loss and accuracy
+        avg_loss = total_loss / num_batches
+        accuracy = accuracy_score(y_true=y_val, y_pred=predicted_labels)
+        
+        return avg_loss, accuracy
     
     def predict(self, X):
         """
@@ -179,11 +226,13 @@ df = pd.read_csv('moviesense/data/cleaned_movie_reviews.csv')
 X = vectorizer.fit_transform(df['review'])
 y = le.fit_transform(df['sentiment'].values)
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-X_train = X_train.toarray()
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
+X_train, X_val = X_train.toarray(), X_val.toarray()
 
 print(type(X_train), type(y_train))
 print(X_train.shape)
 
 classifer = LogisiticRegression()
-classifer.fit(X_train, y_train) 
+classifer.fit(X_train, y_train, X_val, y_val) 
