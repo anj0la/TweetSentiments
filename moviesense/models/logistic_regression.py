@@ -113,8 +113,10 @@ class LogisiticRegression:
             
             # all_train_losses.append(loss)
             
-        # Visualize (and save) plot representing the loss with respect to the epochs
-        self._plot_graph(list(range(1, self.epochs + 1)), all_train_losses, self.lr)  
+        # Visualize (and save) plots
+        x_axis = list(range(1, self.epochs + 1))
+        self._plot_loss(x_axis, all_train_losses, all_val_losses, self.lr)  
+        self._plot_accuracy(x_axis, all_val_accurary, self.lr)  
         
     def _forward_pass(self, x):
         z = self.bias + np.dot(x, self.weights)
@@ -197,7 +199,7 @@ class LogisiticRegression:
         """
         return 1 / (1 + np.exp(-z))
     
-    def _plot_graph(self, list_epochs, list_total_loss, lr):
+    def _plot_accuracy(self, x_axis, val_accuracy, y_label, lr):
         """
         This function plots a graph that visualizes how the loss decreases over the epochs. That is, as the epochs increase, the loss decreases.
 
@@ -206,12 +208,53 @@ class LogisiticRegression:
             list_total_loss (list): all the total losses per epoch
         """
         fig, ax = plt.subplots()
-        ax.plot(list_epochs, list_total_loss) 
+        
+        # Plot validation accuracy
+        ax.plot(x_axis, val_accuracy) 
+        
+        # Set labels and title
         ax.set_xlabel('Number of Epochs')
-        ax.set_ylabel('Total Loss')
-        ax.set_title('Loss as a Function of Epochs')
-        plt.savefig(f'moviesense/figures/loss_epoch_{len(list_epochs)}_lr_{lr}.png')
+        ax.set_ylabel(y_label)
+        ax.set_title(f'{y_label} as a Function of Epochs')
+
+        # Save the plot
+        plt.savefig(f'moviesense/figures/{y_label.lower()}_epoch_{len(x_axis)}_lr_{lr}.png')
+
         # plt.show()
+        
+    def _plot_loss(self, x_axis, train_losses, val_losses, y_label, lr):
+        """
+        This function plots a graph that visualizes how the loss decreases over the epochs
+        for both the training and validation sets.
+
+        Args:
+            x_axis (list): All the epochs (iterations)
+            train_losses (list): All the total training losses per epoch
+            val_losses (list): All the total validation losses per epoch
+            y_label (str): Label for the y-axis (e.g., 'Loss')
+            lr (float): Learning rate used in training, included in the title and filename
+        """
+        fig, ax = plt.subplots()
+        
+        # Plot training losses
+        ax.plot(x_axis, train_losses, label='Training Loss', color='blue')
+        
+        # Plot validation losses
+        ax.plot(x_axis, val_losses, label='Validation Loss', color='orange', linestyle='--')
+
+        # Set labels and title
+        ax.set_xlabel('Number of Epochs')
+        ax.set_ylabel(y_label)
+        ax.set_title(f'{y_label} as a Function of Epochs')
+
+        # Add legend to distinguish between train/validation
+        ax.legend()
+
+        # Save the plot
+        plt.savefig(f'moviesense/figures/{y_label.lower()}_epoch_{len(x_axis)}_lr_{lr}.png')
+        
+        # plt.show()
+
         
 # Running the classifier
 import pandas as pd
