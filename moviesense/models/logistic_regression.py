@@ -232,27 +232,3 @@ class LogisiticRegression:
         y_pred = self.predict(X_test, self.weights, self.bias)
         accuracy = accuracy_score(y_test, y_pred)
         return accuracy
-
-        
-# Running the classifier
-
-vectorizer = CountVectorizer()
-le = LabelEncoder()
-
-joblib.dump(vectorizer, 'movie_sense/data/models/logistic_regression/vectorizer.pkl')
-joblib.dump(vectorizer, 'movie_sense/data/models/logistic_regression/le.pkl')
-
-df = pd.read_csv('moviesense/data/reviews/cleaned_movie_reviews.csv')
-X = vectorizer.fit_transform(df['review'])
-y = le.fit_transform(df['sentiment'].values)
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
-
-X_train, X_val = X_train.toarray(), X_val.toarray()
-
-print(type(X_train), type(y_train))
-print(X_train.shape)
-
-classifer = LogisiticRegression()
-classifer.fit(X_train, y_train, X_val, y_val) 
