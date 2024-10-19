@@ -5,7 +5,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 
-def train():
+def train_logisitic_model(lr: float = 0.1, epochs: int = 50, batch_size: int = 64):
     vectorizer = CountVectorizer()
     le = LabelEncoder()
 
@@ -24,7 +24,9 @@ def train():
     print(type(X_train), type(y_train))
     print(X_train.shape)
 
-    classifer = LogisiticRegression()
+    classifer = LogisiticRegression(lr=lr, epochs=epochs, batch_size=batch_size)
     classifer.fit(X_train, y_train, X_val, y_val) 
     accuracy = classifer.evaluate(X_test, y_test)
     print(f'Test Acc: {accuracy * 100:.2f}')
+    
+train_logisitic_model()

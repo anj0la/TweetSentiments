@@ -105,7 +105,7 @@ class LogisiticRegression:
         ax.set_title(f'Accuracy as a Function of Epochs')
 
         # Save the plot
-        plt.savefig(f'moviesense/figures/accuracy_epoch_{len(x_axis)}_lr_{self.lr}.png')
+        plt.savefig(f'moviesense/figures/logistic_regression/accuracy_epoch_{len(x_axis)}_lr_{self.lr}.png')
 
         # plt.show()
         
@@ -138,7 +138,7 @@ class LogisiticRegression:
         ax.legend()
 
         # Save the plot
-        plt.savefig(f'moviesense/figures/loss_epoch_{len(x_axis)}_lr_{self.lr}.png')
+        plt.savefig(f'moviesense/figures/logistic_regression/loss_epoch_{len(x_axis)}_lr_{self.lr}.png')
         
         # plt.show()
         
