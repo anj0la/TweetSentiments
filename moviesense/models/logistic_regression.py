@@ -22,11 +22,12 @@ class LogisiticRegression:
         - weights - the parameters of the model, adjusted to get the desired probability
         - w0 - an extra parameter, adjusted to get the desired probability
     """
-    def __init__(self, lr: float = 0.1, epochs: int = 100) -> None:
+    def __init__(self, lr: float = 0.1, epochs: int = 200, batch_size: int = 64) -> None:
         self.lr = lr
         self.epochs = epochs
         self.weights = None
         self.bias = None # Bias
+        self.batch_size = batch_size
     
     def _initialize_weights(self, n_features) -> None:
         """ 
@@ -35,44 +36,69 @@ class LogisiticRegression:
         self.weights = np.zeros(n_features)
         self.bias = 0.5
 
-    def fit(self, X_train, y_train) -> None:
-        """
-        Trains the binary classifier on the given training set (Xt) and corresponding probabilities (yt).
-
-        Args:
-            X_train (ndarray): The training set.
-            y_train (ndarray): The corresponding probabilities for the training set. 
-        """
+    def fit(self, X_train, y_train):
         self._initialize_weights(X_train.shape[1])
         all_train_losses = []
-        # best_loss = []
-        print('Starting training...')
-                
+        num_batches = X_train.shape[0] // self.batch_size
+        
         for epoch in range(self.epochs):
-            # Forward pass (make a prediction)
-            y_hat = self._forward_pass(X_train)
             
-            print('WE MADE A FORWARD PASS!')
+            print(f'Starting epoch {epoch + 1}...')
             
-            #print(f'type of y_train: {type(y_train)}, type of y_hat: {type(y_hat)}')
-            #print(f'y_train[:5]: {y_train[:5]}, y_hat[:5]: {y_hat[:5]}')
-            #print(f'y_train type: {y_train.dtype}, y_hat type: {y_hat.dtype}')
+            # Shuffle the data at the start of each epoch
+            indices = np.random.permutation(X_train.shape[0])
+            X_train, y_train = X_train[indices], y_train[indices]
+            
+            epoch_loss = 0
+            
+            for i in range(num_batches):
+                # Get the mini-batch
+                start_i = i * self.batch_size
+                end_i = start_i + self.batch_size
+                X_batch = X_train[start_i:end_i]
+                y_batch = y_train[start_i:end_i]
+                
+                # Forward pass
+                y_hat = self._forward_pass(X_batch)
+                
+                # Compute the loss for current batch
+                batch_loss = self._loss_function(y_batch, y_hat)
+                epoch_loss += batch_loss
+                
+                # Update the weights for current batch
+                self._update_weights(X_batch, y_batch, y_hat)
+            
+            # Average loss for the epoch
+            avg_loss = epoch_loss / num_batches
+            all_train_losses.append(avg_loss)
+            
+            print(f'Epoch {epoch + 1} finished with average loss: {avg_loss}')
+            
+            
+            # # Forward pass (make a prediction)
+            # y_hat = self._forward_pass(X_train)
+            
+            # print('WE MADE A FORWARD PASS!')
+            
+            # #print(f'type of y_train: {type(y_train)}, type of y_hat: {type(y_hat)}')
+            # #print(f'y_train[:5]: {y_train[:5]}, y_hat[:5]: {y_hat[:5]}')
+            # #print(f'y_train type: {y_train.dtype}, y_hat type: {y_hat.dtype}')
 
-            # Calculate the loss
-            loss = self._loss_function(y_train, y_hat)
+            # # Calculate the loss
+            # loss = self._loss_function(y_train, y_hat)
             
-            print('WE CALCLUATED THE LOSS!')
+            # print('WE CALCLUATED THE LOSS!')
             
-            # Backward pass and update weights
-            self._update_weights(X_train, y_train, y_hat)
+            # # Backward pass and update weights
+            # self._update_weights(X_train, y_train, y_hat)
             
-            print('WE UPDATED THE WEIGHTS!')
+            # print('WE UPDATED THE WEIGHTS!')
                 
             # Print loss metrics
-            print(f'Epoch {epoch + 1} / {self.epochs}\nCurrent loss: {loss}')
-            # print(f'Weights : {self.weights}')
+            # print(f'Epoch {epoch + 1} / {self.epochs}\nCurrent loss: {loss}')
+            # # print(f'Weights : {self.weights}')
             
-            all_train_losses.append(loss)
+            # all_train_losses.append(loss)
             
         # Visualize (and save) plot representing the loss with respect to the epochs
         self._plot_graph(list(range(1, self.epochs + 1)), all_train_losses, self.lr)  
@@ -134,8 +160,8 @@ class LogisiticRegression:
         """
         fig, ax = plt.subplots()
         ax.plot(list_epochs, list_total_loss) 
-        ax.set_xlabel('Number of epochs')
-        ax.set_ylabel('Total loss')
+        ax.set_xlabel('Number of Epochs')
+        ax.set_ylabel('Total Loss')
         ax.set_title('Loss as a Function of Epochs')
         plt.savefig(f'moviesense/figures/loss_epoch_{len(list_epochs)}_lr_{lr}.png')
         # plt.show()
