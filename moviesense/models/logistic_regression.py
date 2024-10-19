@@ -137,35 +137,20 @@ class LogisiticRegression:
         return -(1 / m) * np.sum(y * np.log(y_hat) + (1 - y) * np.log(1 - y_hat))
     
     def _evaluate(self, X_val, y_val):
-        num_batches = X_val.shape[0] // self.batch_size
-        total_loss = 0
+        # Forward pass on entire validation set
+        y_hat = self._forward_pass(X_val)
         
-        # Generate batch indices and shuffle them
-        batch_indices = np.arange(num_batches)
-        np.random.shuffle(batch_indices)
-   
-        for i in batch_indices:
-            # Get the mini-batch
-            start_i = i * self.batch_size
-            end_i = start_i + self.batch_size
-            X_batch = X_val[start_i:end_i]
-            y_batch = y_val[start_i:end_i]
-                
-            # Forward pass
-            y_hat = self._forward_pass(X_batch)
-                
-            # Compute the loss for current batch
-            batch_loss = self._loss_function(y_batch, y_hat)
-            total_loss += batch_loss
-            
-        # Get predicted labels
+        # Compute the loss
+        avg_loss = self._loss_function(y_val, y_hat)
+        
+        # Predicted labels
         predicted_labels = [1 if pred >= 0.5 else 0 for pred in y_hat]
         
-        # Compute average loss and accuracy
-        avg_loss = total_loss / num_batches
+        # Compute accuracy
         accuracy = accuracy_score(y_true=y_val, y_pred=predicted_labels)
         
         return avg_loss, accuracy
+
     
     def predict(self, X):
         """
