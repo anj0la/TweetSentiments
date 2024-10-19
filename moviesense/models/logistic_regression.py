@@ -229,6 +229,6 @@ class LogisiticRegression:
         return np.round(self._sigmoid(z))
     
     def evaluate(self, X_test, y_test):
-        y_pred = self.predict(X_test, self.weights, self.bias)
+        y_pred = self.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
         return accuracy
