@@ -8,31 +8,24 @@ Description:
 
 This file contains the LogisticRegression class which is used to implement a binary classifier with a sigmoid activation function.
 """
-import joblib
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 class LogisiticRegression:
     """
     A class to represent the implementation of a logistic regression with a sigmoid activation function.
-    
-    Attributes:
-        - learning_rate - the learning rate of the classifier
-        - n_iterations - the number of iterations to go through all of the training examples ( known as epochs) 
-        - weights - the parameters of the model, adjusted to get the desired probability
-        - w0 - an extra parameter, adjusted to get the desired probability
     """
-    def __init__(self, lr: float = 0.1, epochs: int = 10, batch_size: int = 64) -> None:
+    def __init__(self, lr: float = 0.1, epochs: int = 10, batch_size: int = 64, decay_factor: float = 0.1, lr_step: int = 10, reg_lambda: float = 0.0) -> None:
         self.lr = lr
         self.epochs = epochs
         self.weights = None
         self.bias = None # Bias
         self.batch_size = batch_size
+        self.decay_factor = decay_factor
+        self.lr_step = lr_step
+        self.reg_lambda = reg_lambda
     
     def _initialize_weights(self, n_features) -> None:
         """ 
@@ -55,9 +48,12 @@ class LogisiticRegression:
     def _loss_function(self, y, y_hat):
         # Clip y_hat to avoid log(0)
         y_hat = np.clip(y_hat, 1e-10, 1 - 1e-10)
-        
         m = y.shape[0]
-        return -(1 / m) * np.sum(y * np.log(y_hat) + (1 - y) * np.log(1 - y_hat))
+        
+        cross_entropy_loss = -(1 / m) * np.sum(y * np.log(y_hat) + (1 - y) * np.log(1 - y_hat))
+        l2_reg = (self.reg_lambda / (2 * m)) * np.sum(np.square(self.weights))
+        return cross_entropy_loss + l2_reg
+       
     
     def _evaluate(self, X_val, y_val):
         # Forward pass on entire validation set
@@ -105,7 +101,7 @@ class LogisiticRegression:
         ax.set_title(f'Accuracy as a Function of Epochs')
 
         # Save the plot
-        plt.savefig(f'moviesense/figures/logistic_regression/accuracy_epoch_{len(x_axis)}_lr_{self.lr}.png')
+        plt.savefig(f'moviesense/figures/logistic_regression/accuracy_epoch_{len(x_axis)}_lr_0.01.png')
 
         # plt.show()
         
@@ -138,7 +134,7 @@ class LogisiticRegression:
         ax.legend()
 
         # Save the plot
-        plt.savefig(f'moviesense/figures/logistic_regression/loss_epoch_{len(x_axis)}_lr_{self.lr}.png')
+        plt.savefig(f'moviesense/figures/logistic_regression/loss_epoch_{len(x_axis)}_lr_0.01.png')
         
         # plt.show()
         
@@ -146,7 +142,13 @@ class LogisiticRegression:
         np.save('movie_sense/data/models/logistic_regression/weights.npy', self.weights)
         np.save('movie_sense/data/models/logistic_regression/bias.npy', np.array(self.bias))
 
-    def fit(self, X_train, y_train, X_val, y_val):
+    def fit(self, X_train, y_train):
+        # Split into training and validation sets
+        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+        
+        # Convert to dense arrays to work with model
+        X_train, X_val = X_train.toarray(), X_val.toarray()
+        
         self._initialize_weights(X_train.shape[1])
         all_train_losses = []
         all_val_losses = []
@@ -156,6 +158,11 @@ class LogisiticRegression:
         for epoch in range(self.epochs):
             
             print(f'Starting epoch {epoch + 1}...')
+            
+            # Manual learning rate scheduler
+            if epoch % self.lr_step == 0 and epoch != 0:
+                self.lr *= self.decay_factor
+                print(f'Reduced learning rate to {self.lr}')
             
             # Generate batch indices and shuffle them
             batch_indices = np.arange(num_batches)
