@@ -205,7 +205,7 @@ class LogisiticRegression:
             # Append train, val losses and accurary
             all_train_losses.append(avg_loss)
             all_val_losses.append(val_loss)
-            all_val_accuracy.append(round(val_accuracy * 100, 2))
+            all_val_accuracy.append(round(val_accuracy, 2))
             
             # Print train and val metrics
             print(f'\t Epoch: {epoch + 1} out of {self.epochs}')

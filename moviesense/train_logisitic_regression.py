@@ -5,7 +5,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 
-def train_logisitic_model(lr: float = 0.01, epochs: int = 100, batch_size: int = 64, decay_factor: float = 0.1, lr_step: int = 5, reg_lambda: float = 0.01):
+def train_logisitic_model(lr: float = 0.01, epochs: int = 75, batch_size: int = 64, decay_factor: float = 1.0, lr_step: int = 10, reg_lambda: float = 0.01):
     vectorizer_path = 'moviesense/data/models/vectorizer.pkl'
     le_path = 'moviesense/data/models/le.pkl'
     df = pd.read_csv('moviesense/data/reviews/cleaned_movie_reviews.csv')
