@@ -34,7 +34,7 @@ def encode_labels(df: pd.DataFrame) -> list[str]:
         list[str]: The list of labels.
     """
     if 'sentiment' not in df.columns:
-        raise ValueError('Expected column "overallRating" in input file.')
+        raise ValueError('Expected column "sentiment" in input file.')
     sentiments = df['sentiment']
     labels = []
     
