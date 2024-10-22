@@ -7,6 +7,7 @@ Date Modified: October 18th, 2024
 Description:
 
 This file contains the LogisticRegression class which is used to implement a binary classifier with a sigmoid activation function.
+Source for early stopping: https://medium.com/@juanc.olamendy/understanding-early-stopping-a-key-to-preventing-overfitting-in-machine-learning-17554fc321ff
 """
 import numpy as np
 import matplotlib.pyplot as plt
