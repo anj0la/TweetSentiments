@@ -17,7 +17,7 @@ class LogisiticRegression:
     """
     A class to represent the implementation of a logistic regression with a sigmoid activation function.
     """
-    def __init__(self, lr: float = 0.1, epochs: int = 10, batch_size: int = 64, decay_factor: float = 0.1, lr_step: int = 10, reg_lambda: float = 0.0) -> None:
+    def __init__(self, lr: float = 0.1, epochs: int = 10, batch_size: int = 64, decay_factor: float = 0.1, lr_step: int = 10, reg_lambda: float = 0.0, no_progress_epochs: int = 10) -> None:
         self.lr = lr
         self.epochs = epochs
         self.weights = None
@@ -26,6 +26,7 @@ class LogisiticRegression:
         self.decay_factor = decay_factor
         self.lr_step = lr_step
         self.reg_lambda = reg_lambda
+        self.no_progress_epochs = no_progress_epochs
     
     def _initialize_weights(self, n_features) -> None:
         """ 
@@ -54,7 +55,6 @@ class LogisiticRegression:
         l2_reg = (self.reg_lambda / (2 * m)) * np.sum(np.square(self.weights))
         return cross_entropy_loss + l2_reg
        
-    
     def _evaluate(self, X_val, y_val):
         # Forward pass on entire validation set
         y_hat = self._forward_pass(X_val)
@@ -154,6 +154,8 @@ class LogisiticRegression:
         all_val_losses = []
         all_val_accuracy = []
         num_batches = X_train.shape[0] // self.batch_size
+        no_progress_count = 0
+        min_val_loss = float('inf')
         
         for epoch in range(self.epochs):
             
@@ -201,6 +203,20 @@ class LogisiticRegression:
 
             # Get validaation loss and accuracy
             val_loss, val_accuracy = self._evaluate(X_val, y_val)
+            
+            # Save the weights and bias to be used for predictions
+            if val_loss < min_val_loss:
+                min_val_loss = val_loss
+                self._save_model()
+                no_progress_count = 0
+            else:
+                no_progress_count += 1
+                
+            # Early stopping condition
+            if no_progress_count >= self.no_progress_epochs:
+                self.epochs = epoch # Done so we only display results up until the epoch where we broke out of the loop
+                print(f'Stopping early at epoch: {epoch + 1}')
+                break
 
             # Append train, val losses and accurary
             all_train_losses.append(avg_loss)
@@ -216,9 +232,6 @@ class LogisiticRegression:
         x_axis = list(range(1, self.epochs + 1))
         self._plot_loss(x_axis, all_train_losses, all_val_losses)  
         self._plot_accuracy(x_axis, all_val_accuracy)  
-        
-        # Save the weights and bias to be used for predictions
-        # self._save_model()
 
     def predict(self, X):
         """
