@@ -91,4 +91,4 @@ def preprocess(file_path: str, output_file_path: str) -> None:
     # Save data to new CSV file
     save_to_csv(cleaned_text, encode_labels, output_file_path)
     
-preprocess(file_path='data/IMDB Dataset.csv', output_file_path='data/cleaned_movie_reviews.csv')
+# preprocess(file_path='data/IMDB Dataset.csv', output_file_path='data/cleaned_movie_reviews.csv')

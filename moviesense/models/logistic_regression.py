@@ -140,8 +140,12 @@ class LogisiticRegression:
         # plt.show()
         
     def _save_model(self):
-        np.save('movie_sense/data/models/logistic_regression/weights.npy', self.weights)
-        np.save('movie_sense/data/models/logistic_regression/bias.npy', np.array(self.bias))
+        np.save('moviesense/data/models/logistic_regression/weights.npy', self.weights)
+        np.save('moviesense/data/models/logistic_regression/bias.npy', np.array(self.bias))
+        
+    def load_model(self):
+        self.weights = np.load('moviesense/data/models/logistic_regression/weights.npy')
+        self.bias = np.load('moviesense/data/models/logistic_regression/bias.npy')
 
     def fit(self, X_train, y_train):
         # Split into training and validation sets
