@@ -132,13 +132,13 @@ class LogisiticRegression:
         """
         return 1 / (1 + np.exp(-z))
     
-    def _plot_accuracy(self, x_axis: list, val_accuracy: list) -> None:
+    def _plot_accuracy(self, x_axis: list[int], val_accuracy: list[float]) -> None:
         """
         Plots a graph that visualizes how the accuracy changes over the epochs.
 
         Args:
-            x_axis (list): A list consisting of the epochs the model was trained on.
-            val_accuracy (list): A list containing all of the accuracies obtained for each epoch.
+            x_axis (list[int]): A list consisting of the epochs the model was trained on.
+            val_accuracy (list[float]): A list containing all of the accuracies obtained for each epoch.
         """
         fig, ax = plt.subplots()
         
@@ -155,14 +155,14 @@ class LogisiticRegression:
 
         # plt.show()
         
-    def _plot_loss(self, x_axis, train_losses, val_losses) -> None:
+    def _plot_loss(self, x_axis: list[int], train_losses: list[float], val_losses: list[float]) -> None:
         """
         Plots a graph that visualizes how the loss decreases over the epochs for both the training and validation sets.
 
         Args:
-            x_axis (list): A list consisting of the epochs the model was trained on.
-            train_losses (list): A list containing the total training losses per epoch.
-            val_losses (list): A list containing the total validation losses per epoch.
+            x_axis (list[int]): A list consisting of the epochs the model was trained on.
+            train_losses (list[float]): A list containing the total training losses per epoch.
+            val_losses (list[float]): A list containing the total validation losses per epoch.
         """
         fig, ax = plt.subplots()
         

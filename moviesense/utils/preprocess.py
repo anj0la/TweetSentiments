@@ -1,5 +1,17 @@
+"""
+File: preprocess.py
+
+Author: Anjola Aina
+Date Modified: October 22nd, 2024
+
+Description:
+
+This file is used to preprocess data.
+"""
+
 import csv
 import emoji
+import numpy as np
 import pandas as pd
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
@@ -43,10 +55,23 @@ def encode_labels(df: pd.DataFrame) -> list[str]:
             
     return labels
 
-def clean_review(df):
+def clean_review(df: pd.DataFrame) -> np.ndarray:
+    """
+    Cleans a review.
+
+    Args:
+        df (pd.DataFrame): The dataframe containing the reviews to be cleaned.
+
+    Raises:
+        ValueError: Occurs if the column "review" does not exist in the dataframe.
+
+    Returns:
+        np.ndarray: The cleaned reviews.
+    """
     if 'review' not in df.columns:
         raise ValueError('Expected column "review" in input file.')
     data = df['review']
+    
     # Convert the text to lowercase
     data = data.str.lower()
     
@@ -89,6 +114,4 @@ def preprocess(file_path: str, output_file_path: str) -> None:
     encoded_labels = encode_labels(df['sentiment'])
     
     # Save data to new CSV file
-    save_to_csv(cleaned_text, encode_labels, output_file_path)
-    
-# preprocess(file_path='data/IMDB Dataset.csv', output_file_path='data/cleaned_movie_reviews.csv')
+    save_to_csv(cleaned_text, encoded_labels, output_file_path)
