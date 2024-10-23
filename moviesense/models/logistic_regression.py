@@ -15,10 +15,19 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 class LogisiticRegression:
-    """
-    A class to represent the implementation of a logistic regression with a sigmoid activation function.
-    """
     def __init__(self, lr: float = 0.1, epochs: int = 10, batch_size: int = 64, decay_factor: float = 0.1, lr_step: int = 10, reg_lambda: float = 0.0, no_progress_epochs: int = 10) -> None:
+        """
+        A class representing the implementation of a logistic regression with a sigmoid activation function.
+
+        Args:
+            lr (float, optional): The learning rate. Defaults to 0.01.
+            epochs (int, optional): The number of epochs. Defaults to 100.
+            batch_size (int, optional): The batch size. Defaults to 64.
+            decay_factor (float, optional): The decay factor (how fast the learning rate decreases). Defaults to 1.0.
+            lr_step (int, optional): The interval at which the learning rate decreases by the decay factor. Defaults to 10.
+            reg_lambda (float, optional): The hyperparameter for L2 regularization. Defaults to 0.01.
+            no_progress_epochs (int, optional): The early stopping parameter. Defaults to 10.
+        """
         self.lr = lr
         self.epochs = epochs
         self.weights = None
