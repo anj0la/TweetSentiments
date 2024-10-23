@@ -34,7 +34,7 @@ def encode_labels(df: pd.DataFrame) -> list[str]:
         list[str]: The list of labels.
     """
     if 'sentiment' not in df.columns:
-        raise ValueError('Expected column "overallRating" in input file.')
+        raise ValueError('Expected column "sentiment" in input file.')
     sentiments = df['sentiment']
     labels = []
     
@@ -91,4 +91,4 @@ def preprocess(file_path: str, output_file_path: str) -> None:
     # Save data to new CSV file
     save_to_csv(cleaned_text, encode_labels, output_file_path)
     
-preprocess(file_path='data/IMDB Dataset.csv', output_file_path='data/cleaned_movie_reviews.csv')
+# preprocess(file_path='data/IMDB Dataset.csv', output_file_path='data/cleaned_movie_reviews.csv')
