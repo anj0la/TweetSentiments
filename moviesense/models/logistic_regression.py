@@ -2,7 +2,7 @@
 File: logistic_regression.py
 
 Author: Anjola Aina
-Date Modified: October 18th, 2024
+Date Modified: October 22nd, 2024
 
 Description:
 
@@ -29,25 +29,55 @@ class LogisiticRegression:
         self.reg_lambda = reg_lambda
         self.no_progress_epochs = no_progress_epochs
     
-    def _initialize_weights(self, n_features) -> None:
+    def _initialize_weights(self, n_features: int) -> None:
         """ 
         Initializes the weights in the binary classifer by assigning fixed values to the weights.
+        
+        Args:
+            n_features(int): The number of features.
         """
         self.weights = np.zeros(n_features)
         self.bias = 0.5
         
-    def _forward_pass(self, x):
+    def _forward_pass(self, x: np.ndarray) -> np.ndarray:
+        """
+        Implements the forward pass for a logistic regression model.
+
+        Args:
+            x (np.ndarray): The input.
+
+        Returns:
+            np.ndarray: The predicted probability from the activation function.
+        """
         z = self.bias + np.dot(x, self.weights)
         return self._sigmoid(z)
         
-    def _update_weights(self, X, y, y_hat):
+    def _update_weights(self, X: np.ndarray, y: np.ndarray, y_hat: np.ndarray) -> None:
+        """
+        Updates the weights and bias.
+
+        Args:
+            X (np.ndarray): The training set.
+            y (np.ndarray): The corresponding labels for the training set.
+            y_hat (np.ndarray): The predicted labels from the training set.
+        """
         m = X.shape[0]
         d_weight = (1 / m) * np.dot(X.T, (y_hat - y))
         d_bias = (1 / m) * np.sum(y_hat - y)
         self.weights -= self.lr * d_weight
         self.bias -= self.lr * d_bias
             
-    def _loss_function(self, y, y_hat):
+    def _loss_function(self, y: np.ndarray, y_hat: np.ndarray) -> float:
+        """
+        Implements the total cross entropy loss function.
+
+        Args:
+            y (np.ndarray): The true labels.
+            y_hat (np.ndarray): The predicted labels.
+
+        Returns:
+            float: The total loss from the predicted labels.
+        """
         # Clip y_hat to avoid log(0)
         y_hat = np.clip(y_hat, 1e-10, 1 - 1e-10)
         m = y.shape[0]
@@ -56,7 +86,17 @@ class LogisiticRegression:
         l2_reg = (self.reg_lambda / (2 * m)) * np.sum(np.square(self.weights))
         return cross_entropy_loss + l2_reg
        
-    def _evaluate(self, X_val, y_val):
+    def _evaluate(self, X_val: np.ndarray, y_val: np.ndarray) -> tuple[float, float]:
+        """
+        Evaluates the model on the validation set.
+
+        Args:
+            X_val (np.ndarray): The validation set.
+            y_val (np.ndarray): The corresponding labels for the validation set.
+
+        Returns:
+            tuple[float, float]: A tuple containing the loss and accuracy score for the validation set.
+        """
         # Forward pass on entire validation set
         y_hat = self._forward_pass(X_val)
         
@@ -71,25 +111,25 @@ class LogisiticRegression:
         
         return loss, accuracy
     
-    def _sigmoid(self, z):
+    def _sigmoid(self, z: np.ndarray) -> np.ndarray:
         """
         Implements the sigmoid function, an activiation function that changes the weighted sum z to a probability.
 
         Args:
-            z (Any): The weighted sum.
+            z (np.ndarray): The weighted sum.
 
         Returns:
-            Any: the predicted probability of z (either 0 or 1)
+            np.ndarray: The predicted probability of z.
         """
         return 1 / (1 + np.exp(-z))
     
-    def _plot_accuracy(self, x_axis, val_accuracy):
+    def _plot_accuracy(self, x_axis: list, val_accuracy: list) -> None:
         """
-        This function plots a graph that visualizes how the loss decreases over the epochs. That is, as the epochs increase, the loss decreases.
+        Plots a graph that visualizes how the accuracy changes over the epochs.
 
         Args:
-            list_epochs (list): all the epochs (iterations)
-            list_total_loss (list): all the total losses per epoch
+            x_axis (list): A list consisting of the epochs the model was trained on.
+            val_accuracy (list): A list containing all of the accuracies obtained for each epoch.
         """
         fig, ax = plt.subplots()
         
@@ -106,17 +146,14 @@ class LogisiticRegression:
 
         # plt.show()
         
-    def _plot_loss(self, x_axis, train_losses, val_losses):
+    def _plot_loss(self, x_axis, train_losses, val_losses) -> None:
         """
-        This function plots a graph that visualizes how the loss decreases over the epochs
-        for both the training and validation sets.
+        Plots a graph that visualizes how the loss decreases over the epochs for both the training and validation sets.
 
         Args:
-            x_axis (list): All the epochs (iterations)
-            train_losses (list): All the total training losses per epoch
-            val_losses (list): All the total validation losses per epoch
-            y_label (str): Label for the y-axis (e.g., 'Loss')
-            lr (float): Learning rate used in training, included in the title and filename
+            x_axis (list): A list consisting of the epochs the model was trained on.
+            train_losses (list): A list containing the total training losses per epoch.
+            val_losses (list): A list containing the total validation losses per epoch.
         """
         fig, ax = plt.subplots()
         
@@ -139,15 +176,28 @@ class LogisiticRegression:
         
         # plt.show()
         
-    def _save_model(self):
+    def _save_model(self) -> None:
+        """
+        Saves the trained weights and bias.
+        """
         np.save('moviesense/data/models/logistic_regression/weights.npy', self.weights)
         np.save('moviesense/data/models/logistic_regression/bias.npy', np.array(self.bias))
         
-    def load_model(self):
+    def load_model(self) -> None:
+        """
+        Loads the model by setting the weights and bias to be its trained values.
+        """
         self.weights = np.load('moviesense/data/models/logistic_regression/weights.npy')
         self.bias = np.load('moviesense/data/models/logistic_regression/bias.npy')
 
-    def fit(self, X_train, y_train):
+    def fit(self, X_train: np.ndarray, y_train: np.ndarray) -> None:
+        """
+        Trains the model.
+
+        Args:
+            X_train (np.ndarray): The training set.
+            y_train (np.ndarray): The corresponding labels for the testing set.
+        """
         # Split into training and validation sets
         X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
         
@@ -238,7 +288,7 @@ class LogisiticRegression:
         self._plot_loss(x_axis, all_train_losses, all_val_losses)  
         self._plot_accuracy(x_axis, all_val_accuracy)  
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> int:
         """
         Predicts the probability (output either 0 or 1) for a given input X, by using the sigmoid function.
         As the sigmoid function may give a decimal value, we use np.round so that values over 0.5 (inclusive) are rounded up to 1,
@@ -253,7 +303,17 @@ class LogisiticRegression:
         z = np.dot(X, self.weights) + self.bias
         return np.round(self._sigmoid(z))
     
-    def evaluate(self, X_test, y_test):
+    def evaluate(self, X_test: np.ndarray, y_test: np.ndarray) -> float:
+        """
+        Evaluates the trained model on the testing set.
+
+        Args:
+            X_test (np.ndarray): The testing set.
+            y_test (np.ndarray): The corresponding labels for the testing set.
+
+        Returns:
+            float: The accuracy score.
+        """
         y_pred = self.predict(X_test)
         accuracy = accuracy_score(y_test, y_pred)
         return accuracy

@@ -29,7 +29,7 @@ def run_logistic_regression(vect_path: str, le_path: str, sentence: str) -> None
     vectorized_sentence = vectorizer.transform(cleaned_sentence).toarray()
     
     # Make a prediction
-    prediction = np.round(classifier.predict(vectorized_sentence))    
+    prediction = classifier.predict(vectorized_sentence)
     label = le.inverse_transform(prediction.astype(int).flatten())[0]
     
     # Print the results
