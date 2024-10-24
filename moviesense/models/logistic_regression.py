@@ -12,7 +12,7 @@ Source for early stopping: https://medium.com/@juanc.olamendy/understanding-earl
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 class LogisiticRegression:
     def __init__(self, lr: float = 0.1, epochs: int = 10, batch_size: int = 64, decay_factor: float = 0.1, lr_step: int = 10, reg_lambda: float = 0.0, no_progress_epochs: int = 10) -> None:
@@ -324,5 +324,11 @@ class LogisiticRegression:
             float: The accuracy score.
         """
         y_pred = self.predict(X_test)
+        
+        # Calculate metrics
         accuracy = accuracy_score(y_test, y_pred)
-        return accuracy
+        precision = precision_score(y_test, y_pred, average='binary')
+        recall = recall_score(y_test, y_pred, average='binary')
+        f1 = f1_score(y_test, y_pred, average='binary')
+        
+        return accuracy, precision, recall, f1
