@@ -18,7 +18,7 @@ from moviesense.models.mlp import MLP
 from moviesense.utils import preprocess
 from torch import optim
 from torch.utils.data import DataLoader, random_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
@@ -103,9 +103,8 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
     all_labels = []
     
     # Set the model in the training phase
-    model.train()  
-    
-    # Go through each batch in the training iterator
+    model.train() 
+     
     for batch in iterator:
         
         # Get the padded sequences, labels and lengths from batch 
@@ -133,7 +132,7 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
         epoch_loss += loss.item()       
         
         # Store predictions and labels for accuracy calculation
-        predicted_labels = torch.round(torch.sigmoid(predictions))  # Get binary predictions
+        predicted_labels = torch.round(F.sigmoid(predictions))  # Get binary predictions
         all_predictions.append(predicted_labels.detach().cpu())
         all_labels.append(labels.detach().cpu())
         
@@ -145,7 +144,7 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
     correct = (all_predictions == all_labels).float().sum()
     accuracy = correct / len(all_labels)
         
-    return epoch_loss / len(iterator), accuracy
+    return epoch_loss / len(iterator), accuracy.item()
 
 def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -> tuple[float, float]:
     """
@@ -166,23 +165,22 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
     all_predictions = []
     all_labels = []
     
-    # Deactivate droput layers and autograd
+    # Set the model in evaluation mode (disables dropout, etc.)
     model.eval()
-    with torch.no_grad():
+    with torch.no_grad(): # Deactivates autograd (no gradients needed)
         
         for batch in iterator:
             
             # Get the padded sequences and labels from batch 
-            padded_sequences, labels, lengths = batch
+            padded_sequences, labels = batch
             labels = labels.type(torch.LongTensor) # Casting to long
                         
             # Move sequences and expected labels to GPU
             padded_sequences = padded_sequences.to(device)
             labels = labels.to(device)
-            lengths = lengths.to(device)
             
             # Get expected predictions
-            predictions = model(padded_sequences, lengths).squeeze(1)
+            predictions = model(padded_sequences).squeeze(1)
             
             # Compute the loss
             loss = F.binary_cross_entropy_with_logits(predictions, labels)     
@@ -191,7 +189,7 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
             epoch_loss += loss.item()       
             
             # Store predictions and labels for accuracy calculation
-            predicted_labels = torch.round(torch.sigmoid(predictions))  # Get binary predictions
+            predicted_labels = torch.round(F.sigmoid(predictions)) # Get binary predictions
             all_predictions.append(predicted_labels.detach().cpu())
             all_labels.append(labels.detach().cpu())
             
@@ -203,7 +201,7 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
     correct = (all_predictions == all_labels).float().sum()
     accuracy = correct / len(all_labels)
     
-    return epoch_loss / len(iterator), accuracy
+    return epoch_loss / len(iterator), accuracy.item()
         
 def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, batch_size: int = 32, n_epochs: int = 50, 
                lr: float = 0.1, weight_decay: float = 0.0, model_save_path: str = 'model/model_saved_state.pt') -> None:
@@ -219,14 +217,13 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
     if not os.path.exists(cleaned_file_path):
         preprocess(file_path=input_file_path, output_file_path=cleaned_file_path)
         
-    # Get the training and testing dataloaders
-    train_dataloader, test_dataloader, dataset = create_dataloaders(
+    # Get the training, validation and testing dataloaders
+    train_dataloader, val_dataloader, test_dataloader, dataset = create_dataloaders(
         file_path=cleaned_file_path, batch_size=batch_size, train_split=train_ratio
     )
     
     # Get the GPU device (if it exists)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # device = torch.device('cpu')
     print(device)
     
     # Create the model
@@ -252,7 +249,7 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
         train_losses.append(train_loss)
         
         # Evaluate the model
-        val_loss, val_accuracy = evaluate_one_epoch(model, test_dataloader, device)
+        val_loss, val_accuracy = evaluate_one_epoch(model, val_dataloader, device)
         val_losses.append(val_loss)
         
         # Save the best model
@@ -265,13 +262,23 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
         print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accurary * 100:.2f}%')
         print(f'\t Valid Loss: {val_loss:.3f} | Valid Acc: {val_accuracy * 100:.2f}%')
         
+    # Evaluate model on test set after training
+    test_accuracy, precision, recall, f1_score = evaulate(model, test_dataloader, device)
+    
+    # Print metrics
+    print(f'Test Acc: {test_accuracy * 100:.2f}%')
+    print(f'Precision: {precision * 100:.2f}%')    
+    print(f'Recall: {recall * 100:.2f}%')    
+    print(f'F1 Score: {f1_score * 100:.2f}%')    
+    
+        
 def evaulate(model: MLP, iterator: DataLoader, device: torch.device):
     all_predictions = []
     all_labels = []
     
-    # Deactivate droput layers and autograd
+    # Set the model in evaluation mode (disables dropout, etc.)
     model.eval()
-    with torch.no_grad():
+    with torch.no_grad(): # Deactivates autograd (no gradients needed)
         
         for batch in iterator:
             # Get the padded sequences and labels from batch 
@@ -284,10 +291,12 @@ def evaulate(model: MLP, iterator: DataLoader, device: torch.device):
             lengths = lengths.to(device)
             
             # Get expected predictions
-            predictions = model(padded_sequences, lengths).squeeze(1)    
+            predictions = model(padded_sequences, lengths).squeeze(1)
             
-            # Store predictions and labels for accuracy calculation
-            predicted_labels = torch.round(torch.sigmoid(predictions))  # Get binary predictions
+            # Apply the sigmoid function and round to get binary predictions
+            predicted_labels = torch.round(F.sigmoid(predictions))
+            
+            # Store predictions and labels for metric calculations
             all_predictions.append(predicted_labels.detach().cpu())
             all_labels.append(labels.detach().cpu())
             
@@ -295,8 +304,17 @@ def evaulate(model: MLP, iterator: DataLoader, device: torch.device):
     all_predictions = torch.cat(all_predictions)
     all_labels = torch.cat(all_labels)
     
-    # Compute accuracy over the entire epoch
+    # Compute accuracy
     correct = (all_predictions == all_labels).float().sum()
     accuracy = correct / len(all_labels)
     
-    return accuracy
+     # Convert tensors to numpy arrays for sklearn metric calculations
+    all_predictions_np = all_predictions.numpy()
+    all_labels_np = all_labels.numpy()
+    
+    # Compute precision, recall, and F1-score using sklearn
+    precision = precision_score(all_labels_np, all_predictions_np)
+    recall = recall_score(all_labels_np, all_predictions_np)
+    f1 = f1_score(all_labels_np, all_predictions_np)
+    
+    return accuracy.item(), precision, recall, f1

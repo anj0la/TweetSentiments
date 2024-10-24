@@ -33,7 +33,12 @@ def train_logisitic_model(lr: float = 0.01, epochs: int = 100, batch_size: int =
     X_test = X_test.toarray()
     
     # Evaluate model on test set
-    accuracy = classifier.evaluate(X_test, y_test)
-    print(f'Test Acc: {accuracy * 100:.2f}%')
+    accuracy, precision, recall, f1_score = classifier.evaluate(X_test, y_test)
     
- 
+    # Print metrics
+    print(f'Test Acc: {accuracy * 100:.2f}%')
+    print(f'Precision: {precision * 100:.2f}%')    
+    print(f'Recall: {recall * 100:.2f}%')    
+    print(f'F1 Score: {f1_score * 100:.2f}%')    
+    
+train_logisitic_model()
