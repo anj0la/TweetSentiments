@@ -59,4 +59,5 @@ def run_logistic_regression(vect_path: str, le_path: str, sentence: str) -> None
     print(f'\tSentence: {sentence} \n\tPrediction: {label}')
     
 if __name__ == '__main__':
-    run_model(model_name='LR')
+    pass
+    # run_model(model_name='LR')
