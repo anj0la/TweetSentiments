@@ -43,8 +43,7 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
     encoded_labels = torch.tensor(encoded_labels, dtype=torch.float)
         
     # Padding sequences
-    padded_encoded_sequences = nn.utils.rnn.pad_sequence(encoded_sequences, batch_first=True, padding_value=0)
-    padded_encoded_sequences = padded_encoded_sequences
+    padded_encoded_sequences = nn.utils.rnn.pad_sequence(encoded_sequences, batch_first=True, padding_value=0)    
     
     return padded_encoded_sequences, encoded_labels
 
@@ -106,7 +105,7 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
         
         # Get the padded sequences and labels from batch 
         padded_sequences, labels = batch
-        labels = labels.type(torch.LongTensor) # Casting to long
+        # labels = labels.type(torch.LongTensor) # Casting to long
         
         # Move input and expected label to GPU
         padded_sequences = padded_sequences.to(device)
@@ -116,16 +115,16 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
         optimizer.zero_grad()   
                 
         # Get expected predictions
-        predictions = model(padded_sequences)
+        predictions = model(padded_sequences).squeeze()
         
         print('predictions shape: ', predictions.shape)
-        print('predictions: ', predictions)
+        #print('predictions: ', predictions)
         
         print('labels shape: ', labels.shape)
-        print('labels: ', labels)
+        #print('labels: ', labels)
         
         # Compute the loss
-        loss = F.binary_cross_entropy_with_logits(predictions, labels.squeeze())   
+        loss = F.binary_cross_entropy_with_logits(predictions, labels)   
         
         # Backpropagate the loss and compute the gradients
         loss.backward()       

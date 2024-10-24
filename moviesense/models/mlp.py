@@ -51,13 +51,27 @@ class MLP(nn.Module):
         # Embedding layer
         embeddings = self.embedding(x) 
         
+        # Embedding shape
+        print('embeddings shape: ', embeddings.shape)
+        
+        # Average embeddings
+        mask = (x != self.embedding.padding_idx).unsqueeze(-1).float()  # Mask out padding
+        summed_embeddings = (embeddings * mask).sum(dim=1)
+                
+        valid_token_counts = mask.sum(dim=1).clamp(min=1)  # Avoid division by zero
+        avg_embeddings = summed_embeddings / valid_token_counts
+        
+        print('average embeddings shape: ', avg_embeddings.shape)
+        
         # MLP layer
-        output = embeddings
+        output = avg_embeddings
         
         for i, fc in enumerate(self.mlp):
             output = fc(output)
             if i < len(self.mlp) - 1: # Apply ReLU except on the last layer
                 output = self.relu(output)
                 output = self.dropout(output)
+                
+        print('output shape: ', output.shape)
                     
         return output
