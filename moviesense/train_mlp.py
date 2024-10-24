@@ -6,14 +6,14 @@ Date Modified: October 23rd, 2024
 
 This file contains all the necessary functions used to train the MLP model.
 """
-import matplotlib.pyplot as plt
 import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from moviesense.data.dataset import MovieReviewsDataset
-from moviesense.models.mlp import MLP
-from moviesense.utils import preprocess
+from data.dataset import MovieReviewsDataset
+from models.mlp import MLP
+from utils.plot_graphs import plot_accuracy, plot_loss
+from utils.preprocess import preprocess
 from torch import optim
 from torch.utils.data import DataLoader, random_split
 from sklearn.metrics import precision_score, recall_score, f1_score
@@ -201,15 +201,10 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
     
     return epoch_loss / len(iterator), accuracy.item()
         
-def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, batch_size: int = 32, n_epochs: int = 50, 
+def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 50, 
                lr: float = 0.1, weight_decay: float = 0.0, model_save_path: str = 'model/model_saved_state.pt') -> None:
     """
-    Trains a LSTM model used for sentiment analysis.
-
-    Args:
-        file_path (str): The path to the cleaned reviews.
-        train_split (int, optional): The proportion of the dataset to include in the train split. Defaults to 0.8.
-        batch_size (int, optional): The batch size for each batch. Defaults to 64.
+    Trains an MLP model used for sentiment analysis.
     """
     # Preprocess the file (if not already preprocessed)
     if not os.path.exists(cleaned_file_path):
@@ -217,7 +212,7 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
         
     # Get the training, validation and testing dataloaders
     train_dataloader, val_dataloader, test_dataloader, dataset = create_dataloaders(
-        file_path=cleaned_file_path, batch_size=batch_size, train_split=train_ratio
+        file_path=cleaned_file_path, batch_size=batch_size, train_split=train_ratio, val_split=val_ratio
     )
     
     # Get the GPU device (if it exists)
@@ -231,9 +226,10 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
     # Setup the optimizer
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
-    # Collecting total loss and epochs
+    # Collecting train and val losses and val accuracy
     train_losses = []
     val_losses = []
+    val_accuracy_list = []
     
     # Initalizing best loss and clearing GPU cache
     best_val_loss = float('inf')
@@ -249,6 +245,7 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
         # Evaluate the model
         val_loss, val_accuracy = evaluate_one_epoch(model, val_dataloader, device)
         val_losses.append(val_loss)
+        val_accuracy_list.append(val_accuracy)
         
         # Save the best model
         if val_loss < best_val_loss:
@@ -259,8 +256,21 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
         print(f'\t Epoch: {epoch + 1} out of {n_epochs}')
         print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accurary * 100:.2f}%')
         print(f'\t Valid Loss: {val_loss:.3f} | Valid Acc: {val_accuracy * 100:.2f}%')
-   
-def evaulate(model: MLP, iterator: DataLoader, device: torch.device) -> None:
+        
+    # Visualize and save plots
+    plot_loss(x_axis=list(range(1, n_epochs + 1)), train_losses=train_losses, val_losses=val_losses, figure_path=f'moviesense/figures/mlp/loss_epoch_{n_epochs + 1}_lr{lr}.png')
+    plot_accuracy(x_axis=list(range(1, n_epochs + 1)), val_accuracy=val_accuracy_list, figure_path=f'moviesense/figures/mlp/accuracy_epoch_{n_epochs + 1}_lr{lr}.png')
+
+    # Evaluate model on testing set
+    test_accuracy, precision, recall, f1 = evaluate(model, test_dataloader, device)
+        
+    # Print test metrics
+    print(f'Test Acc: {test_accuracy * 100:.2f}%')
+    print(f'Precision: {precision * 100:.2f}%')    
+    print(f'Recall: {recall * 100:.2f}%')    
+    print(f'F1 Score: {f1 * 100:.2f}%')   
+    
+def evaluate(model: MLP, iterator: DataLoader, device: torch.device) -> tuple[float, float, float, float]:
     all_predictions = []
     all_labels = []
     
@@ -305,8 +315,7 @@ def evaulate(model: MLP, iterator: DataLoader, device: torch.device) -> None:
     recall = recall_score(all_labels_np, all_predictions_np)
     f1 = f1_score(all_labels_np, all_predictions_np)
     
-    # Print metrics
-    print(f'Test Acc: {accuracy * 100:.2f}%')
-    print(f'Precision: {precision * 100:.2f}%')    
-    print(f'Recall: {recall * 100:.2f}%')    
-    print(f'F1 Score: {f1_score * 100:.2f}%')   
+    return accuracy, precision, recall, f1
+    
+##### Running the code #####
+train(input_file_path='moviesense/data/reviews/IMDB Dataset.csv', cleaned_file_path='moviesense/data/reviews/cleaned_movie_reviews.csv')

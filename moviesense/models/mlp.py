@@ -60,6 +60,3 @@ class MLP(nn.Module):
                 output = self.dropout(output)
                     
         return output
-    
-mlp = MLP(1000)
-print(mlp)
