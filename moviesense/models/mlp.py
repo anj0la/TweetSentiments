@@ -29,8 +29,9 @@ class MLP(nn.Module):
         
         # MLP layer
         self.mlp = nn.ModuleList(
-            [nn.Linear(hidden_dims[i], hidden_dims[i + 1]) if i < len(hidden_dims) - 1 else nn.Linear(hidden_dims[i], output_dim) for i in range(len(hidden_dims))]
-        )
+            [nn.Linear(embedding_dim, hidden_dims[0])]            
+        ).extend([nn.Linear(hidden_dims[i], hidden_dims[i + 1]) if i < len(hidden_dims) - 1 else nn.Linear(hidden_dims[i], output_dim) for i in range(len(hidden_dims))])
+        
         # Activation function (for hidden layers)
         self.relu = nn.ReLU()
         
