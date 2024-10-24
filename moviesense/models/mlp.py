@@ -52,7 +52,7 @@ class MLP(nn.Module):
         embeddings = self.embedding(x) 
         
         # Embedding shape
-        print('embeddings shape: ', embeddings.shape)
+        # print('embeddings shape: ', embeddings.shape)
         
         # Average embeddings
         mask = (x != self.embedding.padding_idx).unsqueeze(-1).float()  # Mask out padding
@@ -61,7 +61,7 @@ class MLP(nn.Module):
         valid_token_counts = mask.sum(dim=1).clamp(min=1)  # Avoid division by zero
         avg_embeddings = summed_embeddings / valid_token_counts
         
-        print('average embeddings shape: ', avg_embeddings.shape)
+        # print('average embeddings shape: ', avg_embeddings.shape)
         
         # MLP layer
         output = avg_embeddings
@@ -72,6 +72,6 @@ class MLP(nn.Module):
                 output = self.relu(output)
                 output = self.dropout(output)
                 
-        print('output shape: ', output.shape)
+        # print('output shape: ', output.shape)
                     
         return output

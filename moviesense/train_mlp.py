@@ -84,7 +84,7 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
     Trains the model for one epoch.
 
     Args:
-        model (LSTM): The model to be trained.
+        model (MLP): The model to be trained.
         iterator (DataLoader): The DataLoader containing the training data.
         optimizer (optim.SGD): The optimizer used for updating model parameters.
 
@@ -117,10 +117,10 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
         # Get expected predictions
         predictions = model(padded_sequences).squeeze()
         
-        print('predictions shape: ', predictions.shape)
+        #print('predictions shape: ', predictions.shape)
         #print('predictions: ', predictions)
         
-        print('labels shape: ', labels.shape)
+        #print('labels shape: ', labels.shape)
         #print('labels: ', labels)
         
         # Compute the loss
@@ -175,14 +175,14 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
             
             # Get the padded sequences and labels from batch 
             padded_sequences, labels = batch
-            labels = labels.type(torch.LongTensor) # Casting to long
+            # labels = labels.type(torch.LongTensor) # Casting to long
                         
             # Move sequences and expected labels to GPU
             padded_sequences = padded_sequences.to(device)
             labels = labels.to(device)
             
             # Get expected predictions
-            predictions = model(padded_sequences).squeeze(1)
+            predictions = model(padded_sequences).squeeze()
             
             # Compute the loss
             loss = F.binary_cross_entropy_with_logits(predictions, labels)     
@@ -205,8 +205,8 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
     
     return epoch_loss / len(iterator), accuracy.item()
         
-def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 10, 
-               lr: float = 0.1, weight_decay: float = 0.0, model_save_path: str = 'model/model_saved_state.pt') -> None:
+def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 10, 
+               lr: float = 0.1, weight_decay: float = 0.0) -> None:
     """
     Trains an MLP model used for sentiment analysis.
     """
@@ -321,4 +321,4 @@ def evaluate(model: MLP, iterator: DataLoader, device: torch.device) -> tuple[fl
     return accuracy, precision, recall, f1
     
 ##### Running the code #####
-train(input_file_path='moviesense/data/reviews/IMDB Dataset.csv', cleaned_file_path='moviesense/data/reviews/cleaned_movie_reviews.csv')
+train(input_file_path='moviesense/data/reviews/IMDB Dataset.csv', cleaned_file_path='moviesense/data/reviews/cleaned_movie_reviews.csv', model_save_path='moviesense/data/models/mlp/mlp_saved_state.pt')
