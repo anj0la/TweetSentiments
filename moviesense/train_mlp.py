@@ -2,11 +2,9 @@
 File: train.py
 
 Author: Anjola Aina
-Date Modified: October 10th, 2024
+Date Modified: October 23rd, 2024
 
-This file contains all the necessary functions used to train the model.
-Only run this file if you want to add more training examples to improve the performance of the model.
-Otherwise, use the pretrained model in the 'models' folder, called model_saved_weights.pt.
+This file contains all the necessary functions used to train the MLP model.
 """
 import matplotlib.pyplot as plt
 import os
@@ -107,7 +105,7 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
      
     for batch in iterator:
         
-        # Get the padded sequences, labels and lengths from batch 
+        # Get the padded sequences and labels from batch 
         padded_sequences, labels = batch
         labels = labels.type(torch.LongTensor) # Casting to long
         
@@ -261,18 +259,8 @@ def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.8, 
         print(f'\t Epoch: {epoch + 1} out of {n_epochs}')
         print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accurary * 100:.2f}%')
         print(f'\t Valid Loss: {val_loss:.3f} | Valid Acc: {val_accuracy * 100:.2f}%')
-        
-    # Evaluate model on test set after training
-    test_accuracy, precision, recall, f1_score = evaulate(model, test_dataloader, device)
-    
-    # Print metrics
-    print(f'Test Acc: {test_accuracy * 100:.2f}%')
-    print(f'Precision: {precision * 100:.2f}%')    
-    print(f'Recall: {recall * 100:.2f}%')    
-    print(f'F1 Score: {f1_score * 100:.2f}%')    
-    
-        
-def evaulate(model: MLP, iterator: DataLoader, device: torch.device):
+   
+def evaulate(model: MLP, iterator: DataLoader, device: torch.device) -> None:
     all_predictions = []
     all_labels = []
     
@@ -317,4 +305,8 @@ def evaulate(model: MLP, iterator: DataLoader, device: torch.device):
     recall = recall_score(all_labels_np, all_predictions_np)
     f1 = f1_score(all_labels_np, all_predictions_np)
     
-    return accuracy.item(), precision, recall, f1
+    # Print metrics
+    print(f'Test Acc: {accuracy * 100:.2f}%')
+    print(f'Precision: {precision * 100:.2f}%')    
+    print(f'Recall: {recall * 100:.2f}%')    
+    print(f'F1 Score: {f1_score * 100:.2f}%')   
