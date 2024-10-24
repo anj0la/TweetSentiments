@@ -41,13 +41,12 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
     # Converting the sequences, labels and sequence length to Tensors
     encoded_sequences = [torch.tensor(seq, dtype=torch.int64) for seq in encoded_sequences]
     encoded_labels = torch.tensor(encoded_labels, dtype=torch.float)
-    lengths = torch.tensor(lengths, dtype=torch.long)
         
     # Padding sequences
     padded_encoded_sequences = nn.utils.rnn.pad_sequence(encoded_sequences, batch_first=True, padding_value=0)
     padded_encoded_sequences = padded_encoded_sequences
     
-    return padded_encoded_sequences, encoded_labels, lengths
+    return padded_encoded_sequences, encoded_labels
 
 def create_dataloaders(file_path: str, batch_size: int, train_split: float, val_split: float) -> tuple[DataLoader, DataLoader]:
     """
