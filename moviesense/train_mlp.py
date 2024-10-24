@@ -118,6 +118,12 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
         # Get expected predictions
         predictions = model(padded_sequences)
         
+        print('predictions shape: ', predictions.shape)
+        print('predictions: ', predictions)
+        
+        print('labels shape: ', labels.shape)
+        print('labels: ', labels)
+        
         # Compute the loss
         loss = F.binary_cross_entropy_with_logits(predictions, labels.squeeze())   
         
@@ -200,7 +206,7 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
     
     return epoch_loss / len(iterator), accuracy.item()
         
-def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 50, 
+def train(input_file_path: str, cleaned_file_path: str, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 10, 
                lr: float = 0.1, weight_decay: float = 0.0, model_save_path: str = 'model/model_saved_state.pt') -> None:
     """
     Trains an MLP model used for sentiment analysis.
@@ -279,16 +285,15 @@ def evaluate(model: MLP, iterator: DataLoader, device: torch.device) -> tuple[fl
         
         for batch in iterator:
             # Get the padded sequences and labels from batch 
-            padded_sequences, labels, lengths = batch
+            padded_sequences, labels = batch
             labels = labels.type(torch.LongTensor) # Casting to long
                         
             # Move sequences and expected labels to GPU
             padded_sequences = padded_sequences.to(device)
             labels = labels.to(device)
-            lengths = lengths.to(device)
             
             # Get expected predictions
-            predictions = model(padded_sequences, lengths).squeeze(1)
+            predictions = model(padded_sequences).squeeze(1)
             
             # Apply the sigmoid function and round to get binary predictions
             predicted_labels = torch.round(F.sigmoid(predictions))
