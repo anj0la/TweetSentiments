@@ -53,7 +53,7 @@ class MLP(nn.Module):
                 output = fc(output)
             if i < len(self.mlp) - 1: # Apply ReLU except on the last layer
                 output = self.relu(output)
-                # output = self.dropout(output)
+                output = self.dropout(output)
                 
         # print('output shape: ', output.shape)
                     

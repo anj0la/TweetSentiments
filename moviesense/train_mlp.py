@@ -117,11 +117,11 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
         # Get expected predictions
         predictions = model(padded_sequences).squeeze()
         
-        if count == 0:
-            print('predictions shape: ', predictions.shape)
-            print('labels shape: ', labels.shape)
-            print('predictions: ', predictions)
-            print('labels: ', labels)
+        # if count == 0:
+        #     print('predictions shape: ', predictions.shape)
+        #     print('labels shape: ', labels.shape)
+        #     print('predictions: ', predictions)
+        #     print('labels: ', labels)
 
         #print('predictions shape: ', predictions.shape)
         #print('predictions: ', predictions)
@@ -214,7 +214,7 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
     return epoch_loss / len(iterator), accuracy.item()
         
 def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 10, 
-               lr: float = 0.001, weight_decay: float = 0.0) -> None:
+               lr: float = 1e-3, weight_decay: float = 1e-5) -> None:
     """
     Trains an MLP model used for sentiment analysis.
     """
@@ -235,8 +235,8 @@ def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, tr
     model = MLP(vocab_size=len(dataset.vocabulary)).to(device)
     print(model)
     
-    # Setup the optimizer
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    # Setup the optimizer and criterion
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     # Collecting train and val losses and val accuracy
     train_losses = []
