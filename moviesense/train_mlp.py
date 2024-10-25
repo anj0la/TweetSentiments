@@ -39,7 +39,7 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
     encoded_sequences, encoded_labels = zip(*batch)
         
     # Converting the sequences, labels and sequence length to Tensors
-    encoded_sequences = [torch.tensor(seq, dtype=torch.int64) for seq in encoded_sequences]
+    encoded_sequences = [torch.tensor(seq, dtype=torch.float) for seq in encoded_sequences]
     encoded_labels = torch.tensor(encoded_labels, dtype=torch.float)
         
     # Padding sequences
@@ -95,6 +95,7 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
     """
     # Initialize the epoch loss for every epoch 
     epoch_loss = 0
+    count = 0
     all_predictions = []
     all_labels = []
     
@@ -102,7 +103,6 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
     model.train() 
      
     for batch in iterator:
-        
         # Get the padded sequences and labels from batch 
         padded_sequences, labels = batch
         # labels = labels.type(torch.LongTensor) # Casting to long
@@ -117,12 +117,18 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
         # Get expected predictions
         predictions = model(padded_sequences).squeeze()
         
+        if count == 0:
+            print('predictions shape: ', predictions.shape)
+            print('labels shape: ', labels.shape)
+            print('predictions: ', predictions)
+            print('labels: ', labels)
+
         #print('predictions shape: ', predictions.shape)
         #print('predictions: ', predictions)
-        
+
         #print('labels shape: ', labels.shape)
         #print('labels: ', labels)
-        
+                
         # Compute the loss
         loss = F.binary_cross_entropy_with_logits(predictions, labels)   
         
@@ -137,6 +143,8 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
         predicted_labels = torch.round(F.sigmoid(predictions))  # Get binary predictions
         all_predictions.append(predicted_labels.detach().cpu())
         all_labels.append(labels.detach().cpu())
+        
+        count += 1
         
     # Concatenate all predictions and labels
     all_predictions = torch.cat(all_predictions)
@@ -206,7 +214,7 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
     return epoch_loss / len(iterator), accuracy.item()
         
 def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 10, 
-               lr: float = 0.1, weight_decay: float = 0.0) -> None:
+               lr: float = 0.001, weight_decay: float = 0.0) -> None:
     """
     Trains an MLP model used for sentiment analysis.
     """
@@ -228,7 +236,7 @@ def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, tr
     print(model)
     
     # Setup the optimizer
-    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
     # Collecting train and val losses and val accuracy
     train_losses = []
@@ -241,6 +249,7 @@ def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, tr
 
     # Training / testing model
     for epoch in range(n_epochs):
+        print(f'Starting epoch {epoch + 1}...')
         
         # Train the model
         train_loss, train_accurary = train_one_epoch(model, train_dataloader, optimizer, device)
@@ -262,8 +271,8 @@ def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, tr
         print(f'\t Valid Loss: {val_loss:.3f} | Valid Acc: {val_accuracy * 100:.2f}%')
         
     # Visualize and save plots
-    plot_loss(x_axis=list(range(1, n_epochs + 1)), train_losses=train_losses, val_losses=val_losses, figure_path=f'moviesense/figures/mlp/loss_epoch_{n_epochs + 1}_lr{lr}.png')
-    plot_accuracy(x_axis=list(range(1, n_epochs + 1)), val_accuracy=val_accuracy_list, figure_path=f'moviesense/figures/mlp/accuracy_epoch_{n_epochs + 1}_lr{lr}.png')
+    plot_loss(x_axis=list(range(1, n_epochs + 1)), train_losses=train_losses, val_losses=val_losses, figure_path=f'moviesense/figures/mlp/loss_epoch_{n_epochs}_lr_{lr}.png')
+    plot_accuracy(x_axis=list(range(1, n_epochs + 1)), val_accuracy=val_accuracy_list, figure_path=f'moviesense/figures/mlp/accuracy_epoch_{n_epochs}_lr_{lr}.png')
 
     # Evaluate model on testing set
     test_accuracy, precision, recall, f1 = evaluate(model, test_dataloader, device)

@@ -21,15 +21,12 @@ import torch
 import torch.nn as nn
 
 class MLP(nn.Module):
-    def __init__(self, vocab_size: int, embedding_dim: int = 100, hidden_dims: list[int] = [32, 16], output_dim: int = 1, dropout: float = 0.2) -> None:
+    def __init__(self, vocab_size: int, hidden_dims: list[int] = [128, 64, 32, 16], output_dim: int = 1, dropout: float = 0.2) -> None:
         super(MLP, self).__init__()
-        
-        # Embedding layer
-        self.embedding = nn.Embedding(vocab_size, embedding_dim, padding_idx=0)
-        
+                
         # MLP layer
         self.mlp = nn.ModuleList(
-            [nn.Linear(embedding_dim, hidden_dims[0])]            
+            [nn.Linear(vocab_size, hidden_dims[0])]            
         ).extend([nn.Linear(hidden_dims[i], hidden_dims[i + 1]) if i < len(hidden_dims) - 1 else nn.Linear(hidden_dims[i], output_dim) for i in range(len(hidden_dims))])
         
         # Activation function (for hidden layers)
@@ -37,6 +34,7 @@ class MLP(nn.Module):
         
         # Dropout layer
         self.dropout = nn.Dropout(dropout)
+        
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -48,29 +46,14 @@ class MLP(nn.Module):
         Returns:
             torch.Tensor: The output of the model after passing the input through the MLP.
         """
-        # Embedding layer
-        embeddings = self.embedding(x) 
-        
-        # Embedding shape
-        # print('embeddings shape: ', embeddings.shape)
-        
-        # Average embeddings
-        mask = (x != self.embedding.padding_idx).unsqueeze(-1).float()  # Mask out padding
-        summed_embeddings = (embeddings * mask).sum(dim=1)
-                
-        valid_token_counts = mask.sum(dim=1).clamp(min=1)  # Avoid division by zero
-        avg_embeddings = summed_embeddings / valid_token_counts
-        
-        # print('average embeddings shape: ', avg_embeddings.shape)
-        
-        # MLP layer
-        output = avg_embeddings
-        
         for i, fc in enumerate(self.mlp):
-            output = fc(output)
+            if i == 0:
+                output = fc(x)
+            else:
+                output = fc(output)
             if i < len(self.mlp) - 1: # Apply ReLU except on the last layer
                 output = self.relu(output)
-                output = self.dropout(output)
+                # output = self.dropout(output)
                 
         # print('output shape: ', output.shape)
                     
