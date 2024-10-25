@@ -2,7 +2,7 @@
 File: logistic_regression.py
 
 Author: Anjola Aina
-Date Modified: October 22nd, 2024
+Date Modified: October 24th, 2024
 
 Description:
 
