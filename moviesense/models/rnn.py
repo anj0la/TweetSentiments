@@ -7,21 +7,38 @@ Date Modified: October 25th, 2024
 This file defines an RNN-based model for sentiment analysis using PyTorch.
 
 The model has the following structure, given the vocabulary size is 169548 with all default values:
+    RNN(
+        (rnn): RNN(169548, 256, num_layers=2, batch_first=True, dropout=0.2)
+        (mlp): MLP(
+            (mlp): ModuleList(
+            (0): Linear(in_features=256, out_features=128, bias=True)
+            (1): Linear(in_features=128, out_features=64, bias=True)
+            (2): Linear(in_features=64, out_features=32, bias=True)
+            (3): Linear(in_features=32, out_features=16, bias=True)
+            (4): Linear(in_features=16, out_features=1, bias=True)
+            )
+            (relu): ReLU()
+            (dropout): Dropout(p=0.2, inplace=False)
+        )
+    )
 """
 import torch
 import torch.nn as nn
-from models.mlp import MLP
+from mlp import MLP
 
 class RNN(nn.Module):
-    def __init__(self, vocab_size: int, rnn_hidden_dim: int = 128, output_dim: int = 1, n_layers: int = 2, batch_first: bool = True, dropout: float = 0.2, bidirectional: bool = False) -> None:
+    def __init__(self, vocab_size: int, rnn_hidden_dim: int = 256, output_dim: int = 1, n_layers: int = 2, batch_first: bool = True, dropout: float = 0.2, bidirectional: bool = False) -> None:
         """
-        Represents a recurrent neural network (RNN).
+        Represents a recurrent neural network (RNN) used for sentiment analysis.
 
         Args:
             vocab_size (int): The number of unique words in the vocabulary. It is assumed that a bag-of-words model like CountVectorizer or TfidfVectorizer has been used to generate word embeddings.
-            hidden_dims (list[int], optional): The number of hidden layers. Defaults to [128, 64, 32, 16].
+            rnn_hidden_dim (int, optionsl): The number of features in the hidden state of the RNN. Defaults to 256.
             output_dim (int, optional): The output layer. Defaults to 1.
+            n_layers (int, optional): The number of recurrent layers in the RNN. Default is 2.
+            batch_first (bool, optional): If True, then the input and output tensors are provided as (batch, seq, feature). Defaults to True.
             dropout (float, optional): The dropout layer. Defaults to 0.2.
+            bidirectional (bool): If True, becomes a bidirectional RNN. Defaults to False.
         """
         super(RNN, self).__init__()
                 
@@ -62,13 +79,15 @@ class RNN(nn.Module):
         
         packed_output, hn = self.rnn(packed_input, h0) # hn has shape (num_layers * 2, batch_size, hidden_size)
 
-        # If bidirectional, concatenate the final states from both directions
         if self.is_bidirectional:
             # Concatenate the last hidden states from both directions ([-2] for forward, [-1] for backward)
             hidden = torch.cat((hn[-2, :, :], hn[-1, :, :]), dim=1)  # Shape: [batch_size, hidden_size * 2]
         else:
-            # For unidirectional, just take the last hidden state
+            # For unidirectional, take the last hidden state
             hidden = hn[-1, :, :]  # Shape: [batch_size, hidden_size]
 
         output = self.mlp(hidden)
         return output
+
+rnn = RNN(169548)
+print(rnn)

@@ -61,4 +61,5 @@ def run_model(sentence: str, model_name: str = 'LR') -> None:
     print(f'\tSentence: {sentence} \n\tPrediction: {label}')
     
 if __name__ == '__main__':
-    run_model(sentence='I hated the movie, it was so bad', model_name='LR')
+    pass
+    # run_model(sentence='I hated the movie, it was so bad', model_name='LR')
