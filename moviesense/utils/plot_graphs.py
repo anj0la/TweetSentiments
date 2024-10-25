@@ -1,3 +1,11 @@
+"""
+File: plot_graphs.py
+
+Author: Anjola Aina
+Date Modified: October 24th, 2024
+
+This file defines functions used to plot the loss and accuracy when training models.
+"""
 import matplotlib.pyplot as plt
 
 def plot_accuracy(x_axis: list[int], val_accuracy: list[float], figure_path: str) -> None:

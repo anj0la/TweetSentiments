@@ -4,7 +4,7 @@ File: mlp.py
 Author: Anjola Aina
 Date Modified: October 24th, 2024
 
-This module defines an MLP-based model for sentiment analysis using PyTorch.
+This file defines an MLP-based model for sentiment analysis using PyTorch.
 
 The model has the following structure, given the vocabulary size is 169548 with all default values:
     MLP(

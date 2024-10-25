@@ -5,8 +5,8 @@ Author: Anjola Aina
 Date Modified: October 24th, 2024
 
 This file contains all the necessary functions used to train the MLP model.
-TODO: Make a basic train function by passing the model as a parameter in train and change name from train_mlp.py to train.py
 """
+
 import os
 import torch
 import torch.nn as nn
@@ -107,7 +107,6 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
     for batch in iterator:
         # Get the padded sequences and labels from batch 
         padded_sequences, labels = batch
-        # labels = labels.type(torch.LongTensor) # Casting to long
         
         # Move input and expected label to GPU
         padded_sequences = padded_sequences.to(device)
@@ -168,10 +167,8 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
     with torch.no_grad(): # Deactivates autograd (no gradients needed)
         
         for batch in iterator:
-            
             # Get the padded sequences and labels from batch 
             padded_sequences, labels = batch
-            # labels = labels.type(torch.LongTensor) # Casting to long
                         
             # Move sequences and expected labels to GPU
             padded_sequences = padded_sequences.to(device)
