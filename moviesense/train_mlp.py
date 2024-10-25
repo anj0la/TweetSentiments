@@ -237,6 +237,7 @@ def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, tr
     # Collecting train and val losses and val accuracy
     train_losses = []
     val_losses = []
+    train_accuracy_list = []
     val_accuracy_list = []
     
     # Initalizing best loss and clearing GPU cache
@@ -250,6 +251,7 @@ def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, tr
         # Train the model
         train_loss, train_accurary = train_one_epoch(model, train_dataloader, optimizer, device)
         train_losses.append(train_loss)
+        train_accuracy_list.append(train_accurary)
         
         # Evaluate the model
         val_loss, val_accuracy = evaluate_one_epoch(model, val_dataloader, device)
@@ -268,7 +270,7 @@ def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, tr
         
     # Visualize and save plots
     plot_loss(x_axis=list(range(1, n_epochs + 1)), train_losses=train_losses, val_losses=val_losses, figure_path=f'moviesense/figures/mlp/loss_epoch_{n_epochs}_lr_{lr}.png')
-    plot_accuracy(x_axis=list(range(1, n_epochs + 1)), val_accuracy=val_accuracy_list, figure_path=f'moviesense/figures/mlp/accuracy_epoch_{n_epochs}_lr_{lr}.png')
+    plot_accuracy(x_axis=list(range(1, n_epochs + 1)), train_accuracy=train_accuracy_list, val_accuracy=val_accuracy_list, figure_path=f'moviesense/figures/mlp/accuracy_epoch_{n_epochs}_lr_{lr}.png')
 
     # Evaluate model on testing set
     test_accuracy, precision, recall, f1 = evaluate(model, test_dataloader, device)

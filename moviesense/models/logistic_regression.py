@@ -164,6 +164,7 @@ class LogisiticRegression:
         self._initialize_weights(X_train.shape[1])
         all_train_losses = []
         all_val_losses = []
+        all_train_accuracy = []
         all_val_accuracy = []
         num_batches = X_train.shape[0] // self.batch_size
         no_progress_count = 0
@@ -232,6 +233,7 @@ class LogisiticRegression:
 
             # Append train, val losses and accurary
             all_train_losses.append(avg_loss)
+            all_train_accuracy.append(train_accuracy)
             all_val_losses.append(val_loss)
             all_val_accuracy.append(round(val_accuracy, 2))
             
@@ -242,8 +244,8 @@ class LogisiticRegression:
             
         # Visualize (and save) plots
         x_axis = list(range(1, self.epochs + 1))
-        plot_loss(x_axis, all_train_losses, all_val_losses, f'moviesense/figures/logistic_regression/loss_epoch_{len(x_axis)}_lr_{self.lr}.png')
-        plot_accuracy(x_axis, all_val_accuracy, f'moviesense/figures/logistic_regression/accuracy_epoch_{len(x_axis)}_lr_{self.lr}.png')
+        plot_loss(x_axis=x_axis, train_losses=all_train_losses, val_losses=all_val_losses, figure_path=f'moviesense/figures/logistic_regression/loss_epoch_{len(x_axis)}_lr_{self.lr}.png')
+        plot_accuracy(x_axis=x_axis, train_accuracy=all_train_accuracy,val_accuracy= all_val_accuracy, figure_path=f'moviesense/figures/logistic_regression/accuracy_epoch_{len(x_axis)}_lr_{self.lr}.png')
 
     def predict(self, X: np.ndarray) -> int:
         """
