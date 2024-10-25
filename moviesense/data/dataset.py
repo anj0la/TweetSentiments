@@ -1,3 +1,12 @@
+"""
+File: dataset.py
+
+Author: Anjola Aina
+Date Modified: October 24th, 2024
+
+This file defines a custom Dataset, MovieReviewsDataset, to be used when loading data from the DataLoaders.
+"""
+
 import joblib
 import numpy as np
 import pandas as pd

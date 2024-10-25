@@ -8,7 +8,6 @@ Description:
 
 This file is used to preprocess data.
 """
-
 import csv
 import emoji
 import numpy as np

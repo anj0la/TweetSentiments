@@ -61,4 +61,4 @@ def train_logisitic_model(lr: float = 0.01, epochs: int = 100, batch_size: int =
     print(f'Recall: {recall * 100:.2f}%')    
     print(f'F1 Score: {f1_score * 100:.2f}%')    
     
-train_logisitic_model()
+# train_logisitic_model()
