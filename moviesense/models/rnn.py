@@ -72,7 +72,7 @@ class RNN(nn.Module):
             torch.Tensor: The raw logits of the model.
         """
         # Pack the padded input sequence to handle variable lengths
-        packed_input = nn.utils.rnn.pack_padded_sequence(x, lengths.cpu(), batch_first=True, enforce_sorted=False)
+        packed_input = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
         
         # Initialize the hidden state (number of layers, batch size, hidden size)
         h0 = torch.zeros(self.n_layers * (2 if self.is_bidirectional else 1), x.size(0), self.rnn_hidden_size).to(x.device)

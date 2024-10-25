@@ -19,7 +19,7 @@ from torch import optim
 from torch.utils.data import DataLoader, random_split
 from sklearn.metrics import precision_score, recall_score, f1_score
 
-def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def collate_batch(batch: tuple[list[int], int]) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Collates a batch of data for the DataLoader.
 
@@ -28,8 +28,8 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
 
     Args:
         batch (list of tuples): A list where each element is a tuple containing two elements:
-            sequences (list of int): The sequence of token ids representing a piece of text.
-            labels (int): The label corresponding to the sequence.
+            sequences (list of int): Sequences of numerical representations of text.
+            labels (int): Labels corresponding to each sequence in the batch.
 
     Returns:
         tuple: A tuple containing two elements:
@@ -38,7 +38,7 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
     """
     encoded_sequences, encoded_labels = zip(*batch)
         
-    # Converting the sequences, labels and sequence length to Tensors
+    # Converting the sequences and labels to Tensors
     encoded_sequences = [torch.tensor(seq, dtype=torch.float) for seq in encoded_sequences]
     encoded_labels = torch.tensor(encoded_labels, dtype=torch.float)
         
@@ -148,9 +148,9 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
     Evaluates the model on the validation set.
 
     Args:
-        model (LSTM): The model to be evaluated.
+        model (MLP): The model to be evaluated.
         iterator (DataLoader): The DataLoader containing the validation data.
-        device( torch.device): The device to train the model on (CPU or GPU).
+        device (torch.device): The device to evaluate the model on (CPU or GPU).
 
     Returns:
         tuple(float, float): A tuple containing:
@@ -231,10 +231,10 @@ def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, tr
     model = MLP(vocab_size=len(dataset.vocabulary)).to(device)
     print(model)
     
-    # Setup the optimizer and criterion
+    # Setup the optimizer
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
-    # Collecting train and val losses and val accuracy
+    # Collecting train and val losses / accuracy
     train_losses = []
     val_losses = []
     train_accuracy_list = []
@@ -286,9 +286,9 @@ def evaluate(model: MLP, iterator: DataLoader, device: torch.device) -> tuple[fl
     Evaluates the model on the testing set.
 
     Args:
-        model (MLP): _description_
-        iterator (DataLoader): _description_
-        device (torch.device): _description_
+        model (MLP): The model to be evaulated on. 
+        iterator (DataLoader): The DataLoader containing the testing data.
+        device (torch.device): The device to test the model on (CPU or GPU).
 
     Returns:
         tuple(float, float, float, float): A tuple containing:
