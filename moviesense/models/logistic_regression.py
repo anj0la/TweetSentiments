@@ -11,6 +11,7 @@ Source for early stopping: https://medium.com/@juanc.olamendy/understanding-earl
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from utils.plot_graphs import plot_loss, plot_accuracy
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
@@ -131,59 +132,6 @@ class LogisiticRegression:
             np.ndarray: The predicted probability of z.
         """
         return 1 / (1 + np.exp(-z))
-    
-    def _plot_accuracy(self, x_axis: list[int], val_accuracy: list[float]) -> None:
-        """
-        Plots a graph that visualizes how the accuracy changes over the epochs.
-
-        Args:
-            x_axis (list[int]): A list consisting of the epochs the model was trained on.
-            val_accuracy (list[float]): A list containing all of the accuracies obtained for each epoch.
-        """
-        fig, ax = plt.subplots()
-        
-        # Plot validation accuracy
-        ax.plot(x_axis, val_accuracy) 
-        
-        # Set labels and title
-        ax.set_xlabel('Number of Epochs')
-        ax.set_ylabel('Accuracy')
-        ax.set_title(f'Accuracy as a Function of Epochs')
-
-        # Save the plot
-        plt.savefig(f'moviesense/figures/logistic_regression/accuracy_epoch_{len(x_axis)}_lr_0.01.png')
-
-        # plt.show()
-        
-    def _plot_loss(self, x_axis: list[int], train_losses: list[float], val_losses: list[float]) -> None:
-        """
-        Plots a graph that visualizes how the loss decreases over the epochs for both the training and validation sets.
-
-        Args:
-            x_axis (list[int]): A list consisting of the epochs the model was trained on.
-            train_losses (list[float]): A list containing the total training losses per epoch.
-            val_losses (list[float]): A list containing the total validation losses per epoch.
-        """
-        fig, ax = plt.subplots()
-        
-        # Plot training losses
-        ax.plot(x_axis, train_losses, label='Training Loss', color='blue')
-        
-        # Plot validation losses
-        ax.plot(x_axis, val_losses, label='Validation Loss', color='orange', linestyle='--')
-
-        # Set labels and title
-        ax.set_xlabel('Number of Epochs')
-        ax.set_ylabel('Total Loss')
-        ax.set_title(f'Loss as a Function of Epochs')
-
-        # Add legend to distinguish between train/validation
-        ax.legend()
-
-        # Save the plot
-        plt.savefig(f'moviesense/figures/logistic_regression/loss_epoch_{len(x_axis)}_lr_0.01.png')
-        
-        # plt.show()
         
     def _save_model(self) -> None:
         """
@@ -294,8 +242,8 @@ class LogisiticRegression:
             
         # Visualize (and save) plots
         x_axis = list(range(1, self.epochs + 1))
-        self._plot_loss(x_axis, all_train_losses, all_val_losses)  
-        self._plot_accuracy(x_axis, all_val_accuracy)  
+        plot_loss(x_axis, all_train_losses, all_val_losses, f'moviesense/figures/logistic_regression/loss_epoch_{len(x_axis)}_lr_{self.lr}.png')
+        plot_accuracy(x_axis, all_val_accuracy, f'moviesense/figures/logistic_regression/accuracy_epoch_{len(x_axis)}_lr_{self.lr}.png')
 
     def predict(self, X: np.ndarray) -> int:
         """
