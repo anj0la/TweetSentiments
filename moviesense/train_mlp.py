@@ -214,7 +214,7 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
     return epoch_loss / len(iterator), accuracy.item()
         
 def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 10, 
-               lr: float = 1e-3, weight_decay: float = 1e-5) -> None:
+               lr: float = 1e-5, weight_decay: float = 1e-5) -> None:
     """
     Trains an MLP model used for sentiment analysis.
     """
