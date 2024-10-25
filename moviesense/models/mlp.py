@@ -2,16 +2,18 @@
 File: mlp.py
 
 Author: Anjola Aina
-Date Modified: October 23rd, 2024
+Date Modified: October 24th, 2024
 
 This module defines an MLP-based model for sentiment analysis using PyTorch.
 
 The model has the following structure, given the vocabulary size is 1000 with all default values:
     MLP(
-        (embedding): Embedding(1000, 100, padding_idx=0)
         (mlp): ModuleList(
-            (0): Linear(in_features=32, out_features=16, bias=True)
-            (1): Linear(in_features=16, out_features=1, bias=True)
+            (0): Linear(in_features=169548, out_features=128, bias=True)
+            (1): Linear(in_features=128, out_features=64, bias=True)
+            (2): Linear(in_features=64, out_features=32, bias=True)
+            (3): Linear(in_features=32, out_features=16, bias=True)
+            (4): Linear(in_features=16, out_features=1, bias=True)
         )
         (relu): ReLU()
         (dropout): Dropout(p=0.2, inplace=False)

@@ -328,6 +328,3 @@ def evaluate(model: MLP, iterator: DataLoader, device: torch.device) -> tuple[fl
     f1 = f1_score(all_labels_np, all_predictions_np)
     
     return accuracy, precision, recall, f1
-    
-##### Running the code #####
-train(input_file_path='moviesense/data/reviews/IMDB Dataset.csv', cleaned_file_path='moviesense/data/reviews/cleaned_movie_reviews.csv', model_save_path='moviesense/data/models/mlp/mlp_saved_state.pt')
