@@ -1,10 +1,11 @@
 """
-File: train.py
+File: train_mlp.py
 
 Author: Anjola Aina
-Date Modified: October 23rd, 2024
+Date Modified: October 24th, 2024
 
 This file contains all the necessary functions used to train the MLP model.
+TODO: Make a basic train function by passing the model as a parameter in train and change name from train_mlp.py to train.py
 """
 import os
 import torch
@@ -22,9 +23,8 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
     """
     Collates a batch of data for the DataLoader.
 
-    This function takes a batch of sequences, labels, and lengths, converts them to tensors, 
-    and pads the sequences to ensure they are of equal length. This is useful for feeding data 
-    into models that require fixed-length inputs, such as LSTM models.
+    This function takes a batch of sequences and labels, converts them to tensors, 
+    and pads the sequences to ensure they are of equal length.
 
     Args:
         batch (list of tuples): A list where each element is a tuple containing two elements:
@@ -47,19 +47,21 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
     
     return padded_encoded_sequences, encoded_labels
 
-def create_dataloaders(file_path: str, batch_size: int, train_split: float, val_split: float) -> tuple[DataLoader, DataLoader]:
+def create_dataloaders(file_path: str, batch_size: int, train_split: float, val_split: float) -> tuple[DataLoader, DataLoader, DataLoader]:
     """
     Creates custom datasets and dataloaders for training and testing.
 
     Args:
         file_path (str): The path to the processed CSV file containing the data.
-        batch_size (int): The size of the batches for the dataloaders. Default is 64.
-        train_split (float): The proportion of the data to use for training. Default is 0.8.
+        batch_size (int): The size of the batches for the dataloaders.
+        train_split (float): The proportion of the data to use for training.
+        val_split (float): The proportion of the data to use for validation.
 
     Returns:
         tuple: A tuple containing:
-            - DataLoader: The dataloader for the training dataset.
-            - DataLoader: The dataloader for the testing dataset.
+            DataLoader: The dataloader for the training dataset.
+            DataLoader: The dataloader for the validation dataset.
+            DataLoader: The dataloader for the testing dataset.
     """
     # Create the custom dataset
     dataset = MovieReviewsDataset(file_path)
@@ -87,15 +89,15 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
         model (MLP): The model to be trained.
         iterator (DataLoader): The DataLoader containing the training data.
         optimizer (optim.SGD): The optimizer used for updating model parameters.
+        device( torch.device): The device to train the model on (CPU or GPU).
 
     Returns:
         tuple: A tuple containing:
-            - float: The average loss over the epoch.
-            - float: The average accuracy over the epoch.
+            float: The average loss over the epoch.
+            float: The average accuracy over the epoch.
     """
     # Initialize the epoch loss for every epoch 
     epoch_loss = 0
-    count = 0
     all_predictions = []
     all_labels = []
     
@@ -116,18 +118,6 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
                 
         # Get expected predictions
         predictions = model(padded_sequences).squeeze()
-        
-        # if count == 0:
-        #     print('predictions shape: ', predictions.shape)
-        #     print('labels shape: ', labels.shape)
-        #     print('predictions: ', predictions)
-        #     print('labels: ', labels)
-
-        #print('predictions shape: ', predictions.shape)
-        #print('predictions: ', predictions)
-
-        #print('labels shape: ', labels.shape)
-        #print('labels: ', labels)
                 
         # Compute the loss
         loss = F.binary_cross_entropy_with_logits(predictions, labels)   
@@ -143,9 +133,7 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
         predicted_labels = torch.round(F.sigmoid(predictions))  # Get binary predictions
         all_predictions.append(predicted_labels.detach().cpu())
         all_labels.append(labels.detach().cpu())
-        
-        count += 1
-        
+                
     # Concatenate all predictions and labels
     all_predictions = torch.cat(all_predictions)
     all_labels = torch.cat(all_labels)
@@ -158,17 +146,17 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
 
 def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -> tuple[float, float]:
     """
-    Evaluates the model on the validation/test set.
+    Evaluates the model on the validation set.
 
     Args:
         model (LSTM): The model to be evaluated.
-        iterator (DataLoader): The DataLoader containing the validation/test data.
-        device (torch.device): The device to train the model on.
+        iterator (DataLoader): The DataLoader containing the validation data.
+        device( torch.device): The device to train the model on (CPU or GPU).
 
     Returns:
-        tuple: A tuple containing:
-            - float: The average loss over the validation/test set.
-            - float: The average accuracy over the validation/test set.
+        tuple(float, float): A tuple containing:
+            float: The average loss over the validation set.
+            float: The average accuracy over the validation set.
     """
     # Initialize the epoch loss for every epoch 
     epoch_loss = 0
@@ -216,7 +204,18 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
 def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 10, 
                lr: float = 1e-5, weight_decay: float = 1e-5) -> None:
     """
-    Trains an MLP model used for sentiment analysis.
+    Trains a model used for sentiment analysis.
+
+    Args:
+        input_file_path (str): The path to the input file (not necessarily cleaned.)
+        cleaned_file_path (str): The path to the cleaned file.
+        model_save_path (str): The path to save the trained model.
+        train_ratio (int, optional): The amount of data to be used for training. Defaults to 0.6.
+        val_ratio (int, optional): The amount of data to be used for validation. Defaults to 0.2.
+        batch_size (int, optional): The size of the batches for the dataloaders. Defaults to 32.
+        n_epochs (int, optional): The number of epochs to train the model. Defaults to 10.
+        lr (float, optional): The learning rate. Defaults to 1e-5.
+        weight_decay (float, optional): L2 regularization. Defaults to 1e-5.
     """
     # Preprocess the file (if not already preprocessed)
     if not os.path.exists(cleaned_file_path):
@@ -284,6 +283,21 @@ def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, tr
     print(f'F1 Score: {f1 * 100:.2f}%')   
     
 def evaluate(model: MLP, iterator: DataLoader, device: torch.device) -> tuple[float, float, float, float]:
+    """
+    Evaluates the model on the testing set.
+
+    Args:
+        model (MLP): _description_
+        iterator (DataLoader): _description_
+        device (torch.device): _description_
+
+    Returns:
+        tuple(float, float, float, float): A tuple containing:
+            float: The accuracy over the testing set.
+            float: The precision score.
+            float: The recall score.
+            float: The F1 score.
+    """
     all_predictions = []
     all_labels = []
     
