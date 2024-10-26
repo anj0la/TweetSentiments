@@ -24,7 +24,7 @@ The model has the following structure, given the vocabulary size is 169548 with 
 """
 import torch
 import torch.nn as nn
-from mlp import MLP
+from models.mlp import MLP
 
 class RNN(nn.Module):
     def __init__(self, vocab_size: int, rnn_hidden_dim: int = 256, output_dim: int = 1, n_layers: int = 2, batch_first: bool = True, dropout: float = 0.2, bidirectional: bool = False) -> None:
@@ -71,13 +71,19 @@ class RNN(nn.Module):
         Returns:
             torch.Tensor: The raw logits of the model.
         """
+        
+        print('Input shape: ', x.shape)
         # Pack the padded input sequence to handle variable lengths
         packed_input = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
+        
+        # print('Packed input shape: ', packed_input)
         
         # Initialize the hidden state (number of layers, batch size, hidden size)
         h0 = torch.zeros(self.n_layers * (2 if self.is_bidirectional else 1), x.size(0), self.rnn_hidden_size).to(x.device)
         
-        packed_output, hn = self.rnn(packed_input, h0) # hn has shape (num_layers * 2, batch_size, hidden_size)
+        print('h0 shape: ', h0.shape)
+        
+        packed_output, hn = self.rnn(x, h0) # hn has shape (num_layers * 2, batch_size, hidden_size)
 
         if self.is_bidirectional:
             # Concatenate the last hidden states from both directions ([-2] for forward, [-1] for backward)
@@ -88,6 +94,3 @@ class RNN(nn.Module):
 
         output = self.mlp(hidden)
         return output
-
-rnn = RNN(169548)
-print(rnn)

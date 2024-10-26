@@ -114,3 +114,6 @@ def preprocess(file_path: str, output_file_path: str) -> None:
     
     # Save data to new CSV file
     save_to_csv(cleaned_text, encoded_labels, output_file_path)
+
+def text_to_sequence(text, vocab, unk_index):
+    return [vocab.get(word, unk_index) for word in text.split()]

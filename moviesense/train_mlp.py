@@ -6,15 +6,12 @@ Date Modified: October 24th, 2024
 
 This file contains all the necessary functions used to train the MLP model.
 """
-
-import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from data.dataset import MovieReviewsDataset
 from models.mlp import MLP
 from utils.plot_graphs import plot_accuracy, plot_loss
-from utils.preprocess import preprocess
 from torch import optim
 from torch.utils.data import DataLoader, random_split
 from sklearn.metrics import precision_score, recall_score, f1_score
@@ -36,7 +33,7 @@ def collate_batch(batch: tuple[list[int], int]) -> tuple[torch.Tensor, torch.Ten
             padded_sequences (torch.Tensor): A tensor of shape (batch_size, max_sequence_length) containing the padded sequences.
             labels (torch.Tensor): A tensor of shape (batch_size,) containing the labels.
     """
-    encoded_sequences, encoded_labels = zip(*batch)
+    encoded_sequences, encoded_labels, _ = zip(*batch)
         
     # Converting the sequences and labels to Tensors
     encoded_sequences = [torch.tensor(seq, dtype=torch.float) for seq in encoded_sequences]
@@ -198,14 +195,13 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
     
     return epoch_loss / len(iterator), accuracy.item()
         
-def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 10, 
+def train(file_path: str, model_save_path: str, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 10, 
                lr: float = 1e-5, weight_decay: float = 1e-5) -> None:
     """
     Trains a model used for sentiment analysis.
 
     Args:
-        input_file_path (str): The path to the input file (not necessarily cleaned.)
-        cleaned_file_path (str): The path to the cleaned file.
+        file_path (str): The path to the cleaned file.
         model_save_path (str): The path to save the trained model.
         train_ratio (int, optional): The amount of data to be used for training. Defaults to 0.6.
         val_ratio (int, optional): The amount of data to be used for validation. Defaults to 0.2.
@@ -214,13 +210,9 @@ def train(input_file_path: str, cleaned_file_path: str, model_save_path: str, tr
         lr (float, optional): The learning rate. Defaults to 1e-5.
         weight_decay (float, optional): L2 regularization. Defaults to 1e-5.
     """
-    # Preprocess the file (if not already preprocessed)
-    if not os.path.exists(cleaned_file_path):
-        preprocess(file_path=input_file_path, output_file_path=cleaned_file_path)
-        
     # Get the training, validation and testing dataloaders
     train_dataloader, val_dataloader, test_dataloader, dataset = create_dataloaders(
-        file_path=cleaned_file_path, batch_size=batch_size, train_split=train_ratio, val_split=val_ratio
+        file_path=file_path, batch_size=batch_size, train_split=train_ratio, val_split=val_ratio
     )
     
     # Get the GPU device (if it exists)

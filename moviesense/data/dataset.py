@@ -10,21 +10,29 @@ This file defines a custom Dataset, MovieReviewsDataset, to be used when loading
 import joblib
 import numpy as np
 import pandas as pd
+from moviesense.utils.preprocess import text_to_sequence
 from torch.utils.data import Dataset
 
 class MovieReviewsDataset(Dataset):
-    def __init__(self, annotations_file: str, vect_path: str = 'moviesense/data/models/vectorizer.pkl', le_path: str = 'moviesense/data/models/le.pkl') -> None:
+    def __init__(self, annotations_file: str, vect_path: str = 'moviesense/data/models/vectorizer.pkl', le_path: str = 'moviesense/data/models/le.pkl', pad_index: int = 0, is_rnn: bool = False) -> None:
         self.reviews = pd.read_csv(annotations_file)
         self.vectorizer = joblib.load(vect_path)
-        self.le = joblib.load(le_path)        
-        self.vocabulary = self.vectorizer.vocabulary_
+        self.le = joblib.load(le_path)  
+        self.pad_index = pad_index
+        self.is_rnn = is_rnn
+      
+        # Define vocabulary with padding and unknown indices
+        vocab_size = len(self.vectorizer.vocabulary_)
+        self.vocabulary = {'<pad>': pad_index, '<unk>': vocab_size + 1, **self.vectorizer.vocabulary_}
+        
+        # Vectorize text data
         self.vectorized_text = self.vectorizer.transform(self.reviews['review'])
         self.encoded_labels = self.le.transform(self.reviews['sentiment'])
-
+        
     def __len__(self) -> int:
         return len(self.reviews)
 
-    def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
+    def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray, int]:
         """
         Gets an item from the reviews.
         
@@ -40,6 +48,16 @@ class MovieReviewsDataset(Dataset):
         Returns:
             tuple[np.ndarray, np.ndarray]: The sequence and the corresponding label.
         """
-        sequence = self.vectorized_text[idx].toarray().squeeze() # Dense matrix
+        if not self.is_rnn:
+            # MLP case: dense vector representation
+            sequence = self.vectorized_text[idx].toarray().squeeze() # Dense matrix
+            length = len(sequence) # Not used in MLP but returned for consistency
+        else:
+            # RNN case: index-based sequence without padding (done in collate_fn function)
+            text = self.reviews['review'].iloc[idx]
+            sequence = text_to_sequence(text=text, vocab=self.vocabulary, unk_index=self.vocabulary['<unk>'])
+            length = len(sequence)
+        
         label = self.encoded_labels[idx]
-        return sequence, label
+        return sequence, label, length
+    

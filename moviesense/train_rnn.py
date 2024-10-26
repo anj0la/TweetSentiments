@@ -6,15 +6,12 @@ Date Modified: October 24th, 2024
 
 This file contains all the necessary functions used to train an RNN-like model.
 """
-
-import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from data.dataset import MovieReviewsDataset
 from models.rnn import RNN
 from utils.plot_graphs import plot_accuracy, plot_loss
-from utils.preprocess import preprocess
 from torch import optim
 from torch.utils.data import DataLoader, random_split
 from sklearn.metrics import precision_score, recall_score, f1_score
@@ -33,12 +30,12 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
             lengths (int): Lengths of each sequence in the batch.
 
     Returns:
-        tuple: A tuple containing two elements:
+        tuple: A tuple containing three elements:
             padded_sequences (torch.Tensor): A tensor of shape (batch_size, max_sequence_length) containing the padded sequences.
             labels (torch.Tensor): A tensor of shape (batch_size,) containing the labels.
             lengths (torch.Tensor): A tensor of shape (batch_size,) containing the original lengths of the sequences.
     """
-    encoded_sequences, encoded_labels = zip(*batch)
+    encoded_sequences, encoded_labels, lengths = zip(*batch)
         
     # Converting the sequences, labels and sequence lengths to Tensors
     encoded_sequences = [torch.tensor(seq, dtype=torch.float) for seq in encoded_sequences]
@@ -207,9 +204,9 @@ def train(file_path: str, model_save_path: str, model_name: str = 'RNN', train_r
     Trains a model used for sentiment analysis.
 
     Args:
-        input_file_path (str): The path to the input file (not necessarily cleaned.)
-        cleaned_file_path (str): The path to the cleaned file.
+        file_path (str): The path to the cleaned file.
         model_save_path (str): The path to save the trained model.
+        model_name (str): The name of the model to be used. Defaults to RNN.
         train_ratio (int, optional): The amount of data to be used for training. Defaults to 0.6.
         val_ratio (int, optional): The amount of data to be used for validation. Defaults to 0.2.
         batch_size (int, optional): The size of the batches for the dataloaders. Defaults to 32.
@@ -281,14 +278,14 @@ def train(file_path: str, model_save_path: str, model_name: str = 'RNN', train_r
     print(f'Recall: {recall * 100:.2f}%')    
     print(f'F1 Score: {f1 * 100:.2f}%')   
     
-def evaluate(model: MLP, iterator: DataLoader, device: torch.device) -> tuple[float, float, float, float]:
+def evaluate(model: RNN, iterator: DataLoader, device: torch.device) -> tuple[float, float, float, float]:
     """
     Evaluates the model on the testing set.
 
     Args:
-        model (MLP): _description_
-        iterator (DataLoader): _description_
-        device (torch.device): _description_
+        model (RNN): The model to be evaulated on. 
+        iterator (DataLoader): The DataLoader containing the testing data.
+        device (torch.device): The device to test the model on (CPU or GPU).
 
     Returns:
         tuple(float, float, float, float): A tuple containing:
@@ -341,3 +338,5 @@ def evaluate(model: MLP, iterator: DataLoader, device: torch.device) -> tuple[fl
     f1 = f1_score(all_labels_np, all_predictions_np)
     
     return accuracy, precision, recall, f1
+
+train(file_path='moviesense/data/reviews/cleaned_movie_reviews.csv', model_save_path='moviesense/data/models/model_saved_state.pt')
