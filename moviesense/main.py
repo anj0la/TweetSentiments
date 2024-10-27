@@ -31,6 +31,12 @@ def load_model(vocab: dict[str, int], model_name: str):
         model = RNN(len(vocab))
         model.load_state_dict(torch.load('moviesense/data/models/rnn/rnn_saved_state.pt', weights_only=True))
         model.eval()
+    elif model_name == 'GRU':
+        pass
+    elif model_name == 'LSTM':
+        pass
+    else:
+        raise ValueError(f'Invalid model name "{model_name}". Expected one of LR, MLP, RNN, GRU or LSTM.')
         
     return model
 
@@ -81,7 +87,7 @@ def run_model(sentence: str, model_name: str = 'LR') -> None:
     if model_name == 'LR' or model_name == 'MLP':
         vectorized_sentence = vectorizer.transform(cleaned_sentence).toarray()
         prediction = make_prediction(vectorized_sentence, model_name, model)
-    else: # RNN-like model
+    else: # RNN-like model (exception is caught when making the model)
         encoded_sentence = text_to_sequence(' '.join(cleaned_sentence.tolist()), vocab, len(vocab) + 1)
         prediction = make_prediction(encoded_sentence, model_name, model)
     

@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from data.dataset import MovieReviewsDataset
-from models.rnn import RNN
+from models.rnn import RNN, GRU, LSTM
 from utils.plot_graphs import plot_accuracy, plot_loss
 from torch import optim
 from torch.utils.data import DataLoader, random_split
@@ -226,6 +226,13 @@ def train(file_path: str, model_save_path: str, model_name: str = 'RNN', train_r
     # Create the model
     if model_name == 'RNN':
         model = RNN(vocab_size=len(dataset.vocabulary)).to(device)
+    elif model_name == 'GRU':
+        model = GRU(vocab_size=len(dataset.vocabulary)).to(device)
+    elif model_name == 'LSTM':
+        model = LSTM(vocab_size=len(dataset.vocabulary)).to(device)
+    else:
+        raise ValueError(f'Invalid model name "{model_name}". Expected one of RNN, GRU or LSTM.')
+    
     print(model)
     
     print(f'lr: {lr}, weight_decay: {weight_decay}')
