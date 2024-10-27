@@ -10,7 +10,7 @@ This file defines a custom Dataset, MovieReviewsDataset, to be used when loading
 import joblib
 import numpy as np
 import pandas as pd
-from moviesense.utils.preprocess import text_to_sequence
+from utils.preprocess import text_to_sequence
 from torch.utils.data import Dataset
 
 class MovieReviewsDataset(Dataset):
@@ -18,7 +18,6 @@ class MovieReviewsDataset(Dataset):
         self.reviews = pd.read_csv(annotations_file)
         self.vectorizer = joblib.load(vect_path)
         self.le = joblib.load(le_path)  
-        self.pad_index = pad_index
         self.is_rnn = is_rnn
       
         # Define vocabulary with padding and unknown indices

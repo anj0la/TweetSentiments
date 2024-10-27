@@ -35,17 +35,17 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
             labels (torch.Tensor): A tensor of shape (batch_size,) containing the labels.
             lengths (torch.Tensor): A tensor of shape (batch_size,) containing the original lengths of the sequences.
     """
-    encoded_sequences, encoded_labels, lengths = zip(*batch)
+    sequences, encoded_labels, lengths = zip(*batch)
+    
+    # Pad sequences to match the longest one in the batch
+    padded_sequences = nn.utils.rnn.pad_sequence([torch.tensor(seq) for seq in sequences], batch_first=True, padding_value=0)
         
-    # Converting the sequences, labels and sequence lengths to Tensors
-    encoded_sequences = [torch.tensor(seq, dtype=torch.float) for seq in encoded_sequences]
+    # Covert labels and lengths to Tensors
     encoded_labels = torch.tensor(encoded_labels, dtype=torch.float)
     lengths = torch.tensor(lengths, dtype=torch.long)
         
-    # Padding sequences
-    padded_encoded_sequences = nn.utils.rnn.pad_sequence(encoded_sequences, batch_first=True, padding_value=0)    
     
-    return padded_encoded_sequences, encoded_labels, lengths
+    return padded_sequences, encoded_labels, lengths
 
 def create_dataloaders(file_path: str, batch_size: int, train_split: float, val_split: float) -> tuple[DataLoader, DataLoader, DataLoader]:
     """
@@ -64,7 +64,7 @@ def create_dataloaders(file_path: str, batch_size: int, train_split: float, val_
             DataLoader: The dataloader for the testing dataset.
     """
     # Create the custom dataset
-    dataset = MovieReviewsDataset(file_path)
+    dataset = MovieReviewsDataset(file_path, is_rnn=True)
     
     # Calculate sizes for training, validation, and test sets
     train_size = int(train_split * len(dataset))
@@ -198,7 +198,7 @@ def evaluate_one_epoch(model: RNN, iterator: DataLoader, device: torch.device) -
     
     return epoch_loss / len(iterator), accuracy.item()
         
-def train(file_path: str, model_save_path: str, model_name: str = 'RNN', train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 10, 
+def train(file_path: str, model_save_path: str, model_name: str = 'RNN', train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 60, 
                lr: float = 1e-5, weight_decay: float = 1e-5) -> None:
     """
     Trains a model used for sentiment analysis.
@@ -218,7 +218,7 @@ def train(file_path: str, model_save_path: str, model_name: str = 'RNN', train_r
     train_dataloader, val_dataloader, test_dataloader, dataset = create_dataloaders(
         file_path=file_path, batch_size=batch_size, train_split=train_ratio, val_split=val_ratio
     )
-    
+
     # Get the GPU device (if it exists)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(device)
@@ -227,6 +227,8 @@ def train(file_path: str, model_save_path: str, model_name: str = 'RNN', train_r
     if model_name == 'RNN':
         model = RNN(vocab_size=len(dataset.vocabulary)).to(device)
     print(model)
+    
+    print(f'lr: {lr}, weight_decay: {weight_decay}')
     
     # Setup the optimizer
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -246,14 +248,14 @@ def train(file_path: str, model_save_path: str, model_name: str = 'RNN', train_r
         print(f'Starting epoch {epoch + 1}...')
         
         # Train the model
-        train_loss, train_accurary = train_one_epoch(model, train_dataloader, optimizer, device)
-        train_losses.append(train_loss)
-        train_accuracy_list.append(train_accurary)
+        train_loss, train_accuracy = train_one_epoch(model, train_dataloader, optimizer, device)
+        train_losses.append(round(train_loss, 2))
+        train_accuracy_list.append(round(train_accuracy, 2))
         
         # Evaluate the model
         val_loss, val_accuracy = evaluate_one_epoch(model, val_dataloader, device)
-        val_losses.append(val_loss)
-        val_accuracy_list.append(val_accuracy)
+        val_losses.append(round(val_loss, 2))
+        val_accuracy_list.append(round(val_accuracy, 2))
         
         # Save the best model
         if val_loss < best_val_loss:
@@ -262,12 +264,12 @@ def train(file_path: str, model_save_path: str, model_name: str = 'RNN', train_r
         
         # Print train / valid metrics
         print(f'\t Epoch: {epoch + 1} out of {n_epochs}')
-        print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accurary * 100:.2f}%')
+        print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accuracy * 100:.2f}%')
         print(f'\t Valid Loss: {val_loss:.3f} | Valid Acc: {val_accuracy * 100:.2f}%')
         
     # Visualize and save plots
-    plot_loss(x_axis=list(range(1, n_epochs + 1)), train_losses=train_losses, val_losses=val_losses, figure_path=f'moviesense/figures/mlp/loss_epoch_{n_epochs}_lr_{lr}.png')
-    plot_accuracy(x_axis=list(range(1, n_epochs + 1)), train_accuracy=train_accuracy_list, val_accuracy=val_accuracy_list, figure_path=f'moviesense/figures/mlp/accuracy_epoch_{n_epochs}_lr_{lr}.png')
+    plot_loss(x_axis=list(range(1, n_epochs + 1)), train_losses=train_losses, val_losses=val_losses, figure_path=f'moviesense/figures/rnn/loss_epoch_{n_epochs}_lr_{lr}.png')
+    plot_accuracy(x_axis=list(range(1, n_epochs + 1)), train_accuracy=train_accuracy_list, val_accuracy=val_accuracy_list, figure_path=f'moviesense/figures/rnn/accuracy_epoch_{n_epochs}_lr_{lr}.png')
 
     # Evaluate model on testing set
     test_accuracy, precision, recall, f1 = evaluate(model, test_dataloader, device)
@@ -303,15 +305,14 @@ def evaluate(model: RNN, iterator: DataLoader, device: torch.device) -> tuple[fl
         
         for batch in iterator:
             # Get the padded sequences and labels from batch 
-            padded_sequences, labels = batch
-            labels = labels.type(torch.LongTensor) # Casting to long
+            padded_sequences, labels, lengths = batch
                         
             # Move sequences and expected labels to GPU
             padded_sequences = padded_sequences.to(device)
             labels = labels.to(device)
             
             # Get expected predictions
-            predictions = model(padded_sequences).squeeze(1)
+            predictions = model(padded_sequences, lengths).squeeze()
             
             # Apply the sigmoid function and round to get binary predictions
             predicted_labels = torch.round(F.sigmoid(predictions))
@@ -339,4 +340,4 @@ def evaluate(model: RNN, iterator: DataLoader, device: torch.device) -> tuple[fl
     
     return accuracy, precision, recall, f1
 
-train(file_path='moviesense/data/reviews/cleaned_movie_reviews.csv', model_save_path='moviesense/data/models/model_saved_state.pt')
+# train(file_path='moviesense/data/reviews/cleaned_movie_reviews.csv', model_save_path='moviesense/data/models/model_saved_state.pt')

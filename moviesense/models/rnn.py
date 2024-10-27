@@ -27,7 +27,7 @@ import torch.nn as nn
 from models.mlp import MLP
 
 class RNN(nn.Module):
-    def __init__(self, vocab_size: int, rnn_hidden_dim: int = 256, output_dim: int = 1, n_layers: int = 2, batch_first: bool = True, dropout: float = 0.2, bidirectional: bool = False) -> None:
+    def __init__(self, vocab_size: int, embedding_dim: int = 100, pad_index: int = 0, rnn_hidden_dim: int = 256, output_dim: int = 1, n_layers: int = 2, batch_first: bool = True, dropout: float = 0.2, bidirectional: bool = False) -> None:
         """
         Represents a recurrent neural network (RNN) used for sentiment analysis.
 
@@ -41,10 +41,19 @@ class RNN(nn.Module):
             bidirectional (bool): If True, becomes a bidirectional RNN. Defaults to False.
         """
         super(RNN, self).__init__()
+        
+        # Embedding layer
+        self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim, padding_idx=pad_index)
                 
         # Recurrent Neural Network (RNN) layer
-        self.rnn = nn.RNN(input_size=vocab_size, hidden_size=rnn_hidden_dim, num_layers=n_layers, batch_first=batch_first, dropout=dropout, bidirectional=bidirectional)
+        self.rnn = nn.RNN(input_size=embedding_dim, hidden_size=rnn_hidden_dim, num_layers=n_layers, batch_first=batch_first, dropout=dropout, bidirectional=bidirectional)
         
+        # Feed-forward layer
+        if not bidirectional:
+            self.fc = nn.Linear(in_features=rnn_hidden_dim, out_features=output_dim)
+        else:
+            self.fc = nn.Linear(in_features=rnn_hidden_dim * 2, out_features=output_dim)
+            
         # MLP layer
         if not bidirectional:
             self.mlp = MLP(vocab_size=rnn_hidden_dim, output_dim=output_dim, dropout=dropout)
@@ -60,7 +69,7 @@ class RNN(nn.Module):
         # Bidirectional flag
         self.is_bidirectional = bidirectional
         
-    def forward(self, x: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
+    def forward(self, input: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
         """
         Implements the forward pass for the RNN.
 
@@ -71,19 +80,26 @@ class RNN(nn.Module):
         Returns:
             torch.Tensor: The raw logits of the model.
         """
+        # Embedding layer
+        embeddings = self.embedding(input) 
         
-        print('Input shape: ', x.shape)
-        # Pack the padded input sequence to handle variable lengths
-        packed_input = nn.utils.rnn.pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
+        # Print the input shape and embedding output shape
+        #print("Input shape (batch size, sequence length):", input.shape)
+        #print("Embedding shape:", embeddings.shape)
         
-        # print('Packed input shape: ', packed_input)
+        # Pack the padded embeddings to handle variable lengths
+        packed_embeddings = nn.utils.rnn.pack_padded_sequence(input=embeddings, lengths=lengths, batch_first=True, enforce_sorted=False)
+        
+        # Print the shape of packed embeddings
+        #print("Packed embeddings shape:", packed_embeddings.data.shape)
         
         # Initialize the hidden state (number of layers, batch size, hidden size)
-        h0 = torch.zeros(self.n_layers * (2 if self.is_bidirectional else 1), x.size(0), self.rnn_hidden_size).to(x.device)
+        h0 = torch.zeros(self.n_layers * (2 if self.is_bidirectional else 1), input.size(0), self.rnn_hidden_size).to(input.device)
         
-        print('h0 shape: ', h0.shape)
+        #print('h0 shape: ', h0.shape)
         
-        packed_output, hn = self.rnn(x, h0) # hn has shape (num_layers * 2, batch_size, hidden_size)
+        # RNN forward pass
+        packed_output, hn = self.rnn(packed_embeddings, h0) # hn has shape (num_layers * 2, batch_size, hidden_size)
 
         if self.is_bidirectional:
             # Concatenate the last hidden states from both directions ([-2] for forward, [-1] for backward)
@@ -93,4 +109,6 @@ class RNN(nn.Module):
             hidden = hn[-1, :, :]  # Shape: [batch_size, hidden_size]
 
         output = self.mlp(hidden)
+        # Feedforward pass
+        # output = self.fc(hidden)
         return output

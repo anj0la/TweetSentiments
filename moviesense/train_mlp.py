@@ -241,9 +241,9 @@ def train(file_path: str, model_save_path: str, train_ratio: int = 0.6, val_rati
         print(f'Starting epoch {epoch + 1}...')
         
         # Train the model
-        train_loss, train_accurary = train_one_epoch(model, train_dataloader, optimizer, device)
+        train_loss, train_accuracy = train_one_epoch(model, train_dataloader, optimizer, device)
         train_losses.append(train_loss)
-        train_accuracy_list.append(train_accurary)
+        train_accuracy_list.append(train_accuracy)
         
         # Evaluate the model
         val_loss, val_accuracy = evaluate_one_epoch(model, val_dataloader, device)
@@ -257,7 +257,7 @@ def train(file_path: str, model_save_path: str, train_ratio: int = 0.6, val_rati
         
         # Print train / valid metrics
         print(f'\t Epoch: {epoch + 1} out of {n_epochs}')
-        print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accurary * 100:.2f}%')
+        print(f'\t Train Loss: {train_loss:.3f} | Train Acc: {train_accuracy * 100:.2f}%')
         print(f'\t Valid Loss: {val_loss:.3f} | Valid Acc: {val_accuracy * 100:.2f}%')
         
     # Visualize and save plots
@@ -299,14 +299,13 @@ def evaluate(model: MLP, iterator: DataLoader, device: torch.device) -> tuple[fl
         for batch in iterator:
             # Get the padded sequences and labels from batch 
             padded_sequences, labels = batch
-            labels = labels.type(torch.LongTensor) # Casting to long
                         
             # Move sequences and expected labels to GPU
             padded_sequences = padded_sequences.to(device)
             labels = labels.to(device)
             
             # Get expected predictions
-            predictions = model(padded_sequences).squeeze(1)
+            predictions = model(padded_sequences).squeeze()
             
             # Apply the sigmoid function and round to get binary predictions
             predicted_labels = torch.round(F.sigmoid(predictions))
