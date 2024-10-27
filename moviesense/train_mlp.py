@@ -2,9 +2,10 @@
 File: train_mlp.py
 
 Author: Anjola Aina
-Date Modified: October 24th, 2024
+Date Modified: October 27th, 2024
 
 This file contains all the necessary functions used to train the MLP model.
+To mask the loss, the following source was utilized: https://discuss.pytorch.org/t/ignore-padding-area-in-loss-computation/95804/5
 """
 import torch
 import torch.nn as nn
@@ -66,7 +67,7 @@ def create_dataloaders(file_path: str, batch_size: int, train_split: float, val_
     # Calculate sizes for training, validation, and test sets
     train_size = int(train_split * len(dataset))
     val_size = int(val_split * len(dataset))
-    test_size = len(dataset) - train_size - val_size  # Ensure all data is accounted for
+    test_size = len(dataset) - train_size - val_size # Ensure all data is accounted for
 
     # Split the dataset into training, validation, and testing sets
     train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
@@ -78,7 +79,7 @@ def create_dataloaders(file_path: str, batch_size: int, train_split: float, val_
     
     return train_dataloader, val_dataloader, test_dataloader, dataset
 
-def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, device: torch.device) -> tuple[float, float]:
+def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, device: torch.device, pad_index: int = 0) -> tuple[float, float]:
     """
     Trains the model for one epoch.
 
@@ -118,7 +119,12 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
         # Compute the loss
         loss = F.binary_cross_entropy_with_logits(predictions, labels)   
         
-        # Backpropagate the loss and compute the gradients
+        # Mask the loss to ignore padded values
+        mask = (labels != pad_index).float()
+        loss = loss.where(mask, torch.tensor(0.0))
+        loss = loss.sum() / mask.sum() # Average the loss, excluding padded values
+
+        # Backpropagate the masked loss and compute the gradients
         loss.backward()       
         optimizer.step()    
         
@@ -140,7 +146,7 @@ def train_one_epoch(model: MLP, iterator: DataLoader, optimizer: optim.SGD, devi
         
     return epoch_loss / len(iterator), accuracy.item()
 
-def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -> tuple[float, float]:
+def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device, pad_index: int = 0) -> tuple[float, float]:
     """
     Evaluates the model on the validation set.
 
@@ -175,7 +181,12 @@ def evaluate_one_epoch(model: MLP, iterator: DataLoader, device: torch.device) -
             predictions = model(padded_sequences).squeeze()
             
             # Compute the loss
-            loss = F.binary_cross_entropy_with_logits(predictions, labels)     
+            loss = F.binary_cross_entropy_with_logits(predictions, labels)    
+            
+            # Mask the loss to ignore padded values
+            mask = (labels != pad_index).float()
+            loss = loss.where(mask, torch.tensor(0.0))
+            loss = loss.sum() / mask.sum() # Average the loss, excluding padded values 
             
             # Increment the loss
             epoch_loss += loss.item()       

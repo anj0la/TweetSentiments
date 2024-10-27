@@ -94,7 +94,7 @@ def initialize_model(model_name: str, vocab_size: int, device: torch.device, bid
     return model
 
 
-def train_one_epoch(model: RNN, iterator: DataLoader, optimizer: optim.SGD, device: torch.device) -> tuple[float, float]:
+def train_one_epoch(model: RNN | GRU | LSTM, iterator: DataLoader, optimizer: optim.SGD, device: torch.device, pad_index: int = 0) -> tuple[float, float]:
     """
     Trains the model for one epoch.
 
@@ -132,7 +132,12 @@ def train_one_epoch(model: RNN, iterator: DataLoader, optimizer: optim.SGD, devi
         predictions = model(padded_sequences, lengths).squeeze()
                 
         # Compute the loss
-        loss = F.binary_cross_entropy_with_logits(predictions, labels)   
+        loss = F.binary_cross_entropy_with_logits(predictions, labels) 
+        
+        # Mask the loss to ignore padded values
+        mask = (labels != pad_index).float()
+        loss = loss.where(mask, torch.tensor(0.0))
+        loss = loss.sum() / mask.sum() # Average the loss, excluding padded values   
         
         # Backpropagate the loss and compute the gradients
         loss.backward()       
@@ -156,7 +161,7 @@ def train_one_epoch(model: RNN, iterator: DataLoader, optimizer: optim.SGD, devi
         
     return epoch_loss / len(iterator), accuracy.item()
 
-def evaluate_one_epoch(model: RNN, iterator: DataLoader, device: torch.device) -> tuple[float, float]:
+def evaluate_one_epoch(model: RNN | GRU | LSTM, iterator: DataLoader, device: torch.device, pad_index: int = 0) -> tuple[float, float]:
     """
     Evaluates the model on the validation set.
 
@@ -191,7 +196,12 @@ def evaluate_one_epoch(model: RNN, iterator: DataLoader, device: torch.device) -
             predictions = model(padded_sequences, lengths).squeeze()
             
             # Compute the loss
-            loss = F.binary_cross_entropy_with_logits(predictions, labels)     
+            loss = F.binary_cross_entropy_with_logits(predictions, labels)
+            
+            # Mask the loss to ignore padded values
+            mask = (labels != pad_index).float()
+            loss = loss.where(mask, torch.tensor(0.0))
+            loss = loss.sum() / mask.sum() # Average the loss, excluding padded values   
             
             # Increment the loss
             epoch_loss += loss.item()       
