@@ -2,7 +2,7 @@
 File: main.py
 
 Author: Anjola Aina
-Date Modified: October 24th, 2024
+Date Modified: October 27th, 2024
 
 Description:
 
@@ -14,7 +14,6 @@ import torch
 from models.logistic_regression import LogisiticRegression
 from models.mlp import MLP
 from models.rnn import RNN
-from sklearn.feature_extraction.text import CountVectorizer
 
 from utils.preprocess import clean_review, text_to_sequence
 
@@ -87,28 +86,7 @@ def run_model(sentence: str, model_name: str = 'LR') -> None:
         prediction = make_prediction(encoded_sentence, model_name, model)
     
     label = le.inverse_transform(prediction)
-    
-    """ # Logisitic Regression
-    if model_name == 'LR':
-        # Load the trained weights and bias for the model
-        model = LogisiticRegression()
-        model.load_model()
-    elif model_name == 'MLP':
-        # Load MLP from saved state and set to eval mode
-        model = MLP(len(vectorizer.vocabulary_))
-        model.load_state_dict(torch.load('moviesense/data/models/mlp/mlp_saved_state.pt', weights_only=True))
-        model.eval() """
-    
-    # # Make a prediction
-    # if model_name == 'LR':
-    #     prediction = model.predict(vectorized_sentence)
-    #     prediction = prediction.astype(int).flatten()
-    #     label = le.inverse_transform(prediction)
-    # elif model_name == 'MLP':
-    #     prediction = torch.sigmoid(model(torch.tensor(vectorized_sentence, dtype=torch.float)))
-    #     prediction = torch.round(prediction).detach().numpy().astype(int)[0]
-    #     label = le.inverse_transform(prediction)
-    
+
     # Print the results
     print(f'\tSentence: {sentence} \n\tPrediction: {label}')
     
