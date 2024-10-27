@@ -2,7 +2,7 @@
 File: logistic_regression.py
 
 Author: Anjola Aina
-Date Modified: October 24th, 2024
+Date Modified: October 27th, 2024
 
 Description:
 
@@ -10,12 +10,11 @@ This file contains the LogisticRegression class which is used to implement a bin
 Source for early stopping: https://medium.com/@juanc.olamendy/understanding-early-stopping-a-key-to-preventing-overfitting-in-machine-learning-17554fc321ff
 """
 import numpy as np
-import matplotlib.pyplot as plt
 from utils.plot_graphs import plot_loss, plot_accuracy
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-class LogisiticRegression:
+class LogisticRegression:
     def __init__(self, lr: float = 0.1, epochs: int = 10, batch_size: int = 64, decay_factor: float = 0.1, lr_step: int = 10, reg_lambda: float = 0.0, no_progress_epochs: int = 10) -> None:
         """
         A class representing the implementation of a logistic regression with a sigmoid activation function.

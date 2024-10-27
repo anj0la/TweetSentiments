@@ -11,36 +11,30 @@ This file is used to run all of the trained models.
 import joblib
 import pandas as pd
 import torch
-from models.logistic_regression import LogisiticRegression
+from models.logistic_regression import LogisticRegression
 from models.mlp import MLP
-from models.rnn import RNN
-
+from models.rnn import RNN, GRU, LSTM
+from train_rnn import initialize_model
 from utils.preprocess import clean_review, text_to_sequence
 
-def load_model(vocab: dict[str, int], model_name: str):
+def load_model(vocab: dict[str, int], model_name: str) -> LogisticRegression | MLP | RNN | GRU | LSTM:
     if model_name == 'LR':
-        # Load the trained weights and bias for the model
-        model = LogisiticRegression()
+        model = LogisticRegression()
         model.load_model()
     elif model_name == 'MLP':
-        # Load MLP from saved state and set to eval mode
-        model = MLP(len(vocab) - 2) # Need to retrain MLP on padded and unk tokens
+        model = MLP(len(vocab) - 2)
         model.load_state_dict(torch.load('moviesense/data/models/mlp/mlp_saved_state.pt', weights_only=True))
         model.eval()
-    elif model_name == 'RNN':
-        model = RNN(len(vocab))
-        model.load_state_dict(torch.load('moviesense/data/models/rnn/rnn_saved_state.pt', weights_only=True))
+    elif model_name in ['RNN', 'GRU', 'LSTM', 'BiRNN', 'BiGRU', 'BiLSTM']:
+        model = initialize_model(model_name=model_name, vocab_size=len(vocab), device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'), bidirectional=('Bi' in model_name))
+        model.load_state_dict(torch.load(f'moviesense/data/models/rnn/{model_name.lower()}_saved_state.pt', weights_only=True))
         model.eval()
-    elif model_name == 'GRU':
-        pass
-    elif model_name == 'LSTM':
-        pass
     else:
-        raise ValueError(f'Invalid model name "{model_name}". Expected one of LR, MLP, RNN, GRU or LSTM.')
+        raise ValueError(f'Invalid model name "{model_name}". Expected one of LR, MLP, RNN, GRU, LSTM, BiRNN, BiGRU, or BiLSTM.')
         
     return model
 
-def make_prediction(sentence: str, model_name: str, model: LogisiticRegression | MLP | RNN) -> int:
+def make_prediction(sentence: str, model_name: str, model: LogisticRegression | MLP | RNN | GRU | LSTM) -> int:
     if model_name == 'LR':
         prediction = model.predict(sentence)
         prediction = prediction.astype(int).flatten()
@@ -48,7 +42,7 @@ def make_prediction(sentence: str, model_name: str, model: LogisiticRegression |
         input = torch.tensor(sentence, dtype=torch.float)
         prediction = torch.sigmoid(model(input))
         prediction = torch.round(prediction).detach().numpy().astype(int)[0]
-    else: # RNN-like
+    else: # RNN-like model
         input = torch.tensor(sentence).unsqueeze(1).T  # Reshaping in form of batch, number of words
         lengths = torch.tensor([len(sentence)], dtype=torch.long)
         prediction = torch.sigmoid(model(input, lengths))

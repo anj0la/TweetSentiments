@@ -81,6 +81,19 @@ def create_dataloaders(file_path: str, batch_size: int, train_split: float, val_
     
     return train_dataloader, val_dataloader, test_dataloader, dataset
 
+def initialize_model(model_name: str, vocab_size: int, device: torch.device, bidirectional: bool = False):
+    if model_name in ['RNN', 'BiRNN']:
+        model = RNN(vocab_size=vocab_size, bidirectional=bidirectional).to(device)
+    elif model_name in ['GRU', 'BiGRU']:
+        model = GRU(vocab_size=vocab_size, bidirectional=bidirectional).to(device)
+    elif model_name in ['LSTM', 'BiLSTM']:
+        model = LSTM(vocab_size=vocab_size, bidirectional=bidirectional).to(device)
+    else:
+        raise ValueError(f'Invalid model name "{model_name}". Expected one of RNN, GRU, LSTM, BiRNN, BiGRU, or BiLSTM.')
+    
+    return model
+
+
 def train_one_epoch(model: RNN, iterator: DataLoader, optimizer: optim.SGD, device: torch.device) -> tuple[float, float]:
     """
     Trains the model for one epoch.
@@ -224,15 +237,7 @@ def train(file_path: str, model_save_path: str, model_name: str = 'RNN', train_r
     print(device)
     
     # Create the model
-    if model_name == 'RNN':
-        model = RNN(vocab_size=len(dataset.vocabulary)).to(device)
-    elif model_name == 'GRU':
-        model = GRU(vocab_size=len(dataset.vocabulary)).to(device)
-    elif model_name == 'LSTM':
-        model = LSTM(vocab_size=len(dataset.vocabulary)).to(device)
-    else:
-        raise ValueError(f'Invalid model name "{model_name}". Expected one of RNN, GRU or LSTM.')
-    
+    model = initialize_model(model_name=model_name, vocab_size=len(dataset.vocabulary), device=device, bidirectional=('Bi' in model_name))
     print(model)
     
     print(f'lr: {lr}, weight_decay: {weight_decay}')

@@ -10,7 +10,7 @@ This file contains the train_logisitic_model function which is used to train the
 """
 import joblib
 import pandas as pd
-from models.logistic_regression import LogisiticRegression
+from models.logistic_regression import LogisticRegression
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -46,7 +46,7 @@ def train_logisitic_model(lr: float = 0.01, epochs: int = 100, batch_size: int =
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # # Trains (and validates) the model
-    classifier = LogisiticRegression(lr=lr, epochs=epochs, batch_size=batch_size, decay_factor=decay_factor, lr_step=lr_step, reg_lambda=reg_lambda, no_progress_epochs=no_progress_epochs)
+    classifier = LogisticRegression(lr=lr, epochs=epochs, batch_size=batch_size, decay_factor=decay_factor, lr_step=lr_step, reg_lambda=reg_lambda, no_progress_epochs=no_progress_epochs)
     classifier.fit(X_train, y_train) 
     
     # Convert to dense array
