@@ -46,7 +46,7 @@ class MLP(nn.Module):
         # Dropout layer
         self.dropout = nn.Dropout(dropout)
         
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, lengths: int = None) -> torch.Tensor:
         """
         Implements the forward pass for the MLP.
         
