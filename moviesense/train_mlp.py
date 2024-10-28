@@ -10,7 +10,7 @@ To mask the loss, the following source was utilized: https://discuss.pytorch.org
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from data.dataset import MovieReviewsDataset
+from moviesense.data.datasets import MovieReviewsDataset
 from models.mlp import MLP
 from utils.plot_graphs import plot_accuracy, plot_loss
 from torch import optim

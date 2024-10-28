@@ -9,7 +9,7 @@ This file contains all the necessary functions used to train an RNN-like model.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from data.dataset import MovieReviewsDataset
+from moviesense.data.datasets import MovieReviewsDataset
 from models.rnn import RNN, GRU, LSTM
 from utils.plot_graphs import plot_accuracy, plot_loss
 from torch import optim
