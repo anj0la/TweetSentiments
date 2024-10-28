@@ -63,27 +63,6 @@ def generate_context_target_pairs(text: list, vocab: dict, window_size: int = 2)
     
     return context_target_pairs
 
-window_size = 2
-
-df = pd.read_csv('moviesense/data/reviews/cleaned_movie_reviews.csv')
-
-# print(type(df['review']))
-
-tokenized_data, vocab = tokenize_and_build_vocab(df['review'])
-data = generate_context_target_pairs(tokenized_data, vocab)
-
-print(data[:10])
-
-dataframe = pd.DataFrame(data, columns=['context', 'target'])
-
-# Convert pairs to tensors for PyTorch
-#context_target_pairs_tensors = [(torch.tensor(context, dtype=torch.long), torch.tensor(target, dtype=torch.long))
-#                                for context, target in data]
-
-
-#batch_size = 64  # You can adjust this value
-#dataloader = DataLoader(context_target_pairs_tensors, batch_size=batch_size, shuffle=True)
-
 
 
 

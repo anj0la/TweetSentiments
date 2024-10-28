@@ -6,8 +6,9 @@ Date Modified: October 24th, 2024
 
 This file defines functions used to plot the loss and accuracy when training models.
 """
+import numpy as np
 import matplotlib.pyplot as plt
-
+from sklearn.decomposition import PCA
 
 def plot_accuracy(x_axis: list[int], train_accuracy: list[float], val_accuracy: list[float], figure_path: str) -> None:
     """
@@ -38,7 +39,7 @@ def plot_accuracy(x_axis: list[int], train_accuracy: list[float], val_accuracy: 
 
     # plt.show()
         
-def plot_loss(x_axis: list[int], train_losses: list[float], val_losses: list[float], figure_path: str) -> None:
+def plot_loss(x_axis: list[int], train_losses: list[float], val_losses: list[float] | None, figure_path: str) -> None:
     """
     Plots a graph that visualizes how the loss decreases over the epochs for both the training and validation sets.
 
@@ -52,8 +53,9 @@ def plot_loss(x_axis: list[int], train_losses: list[float], val_losses: list[flo
     # Plot training losses
     ax.plot(x_axis, train_losses, label='Training Loss', color='blue')
         
-    # Plot validation losses
-    ax.plot(x_axis, val_losses, label='Validation Loss', color='orange', linestyle='--')
+    # Plot validation losses (if it exists)
+    if val_losses:
+        ax.plot(x_axis, val_losses, label='Validation Loss', color='orange', linestyle='--')
 
     # Set labels and title
     ax.set_xlabel('Number of Epochs')
@@ -67,3 +69,24 @@ def plot_loss(x_axis: list[int], train_losses: list[float], val_losses: list[flo
     plt.savefig(figure_path)
         
     # plt.show()
+    
+def plot_pca(embeddings: np.ndarray, vocab: dict, figure_path: str):
+    pca = PCA(n_components=2)
+    reduced_embeddings = pca.fit_transform(embeddings)
+
+    # Visualize the embeddings
+    plt.figure(figsize=(8, 8))
+    for i, word in enumerate(vocab):
+        x, y = reduced_embeddings[i]
+        plt.scatter(x, y)
+        plt.annotate(word, xy=(x, y), xytext=(5, 2),
+                    textcoords='offset points',
+                    ha='right', va='bottom')
+
+    plt.title('PCA Visualization of Word Embeddings')
+    plt.grid(True)
+    
+    # Save the plot
+    plt.savefig(figure_path)
+    
+    plt.show()

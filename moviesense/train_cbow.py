@@ -12,7 +12,7 @@ import pandas as pd
 from data.datasets import CBOWDataset
 from models.cbow import CBOW
 from utils.cbow_preprocess import generate_context_target_pairs, tokenize_and_build_vocab
-from utils.plot_graphs import plot_loss
+from utils.plot_graphs import plot_loss, plot_pca
 from torch import optim
 from torch.utils.data import DataLoader
 
@@ -103,11 +103,13 @@ def train(file_path: str, model_save_path: str, batch_size: int = 32, n_epochs: 
         print(f'\t Epoch: {epoch + 1} out of {n_epochs}')
         print(f'\t Train Loss: {loss:.3f}')
         
-    # Save the model
-    torch.save(obj=model.state_dict(), f=model_save_path)
+    # Save the weights
+    torch.save(obj=model.embedding.weight, f=model_save_path)
     
     # Visualize and save plots
     plot_loss(x_axis=list(range(1, n_epochs + 1)), train_losses=losses, val_losses=None, figure_path=f'moviesense/figures/cbow/loss_epoch_{n_epochs}_lr_{lr}.png')
+    plot_pca(embeddings=model.embedding.weight.detach().cpu().numpy(), vocab=vocab, figure_path='moviesense/figures/cbow/pca_plot.png') 
+
     
 
-# train(file_path='moviesense/data/reviews/cleaned_movie_reviews.csv', model_save_path='moviesense/data/models/model_saved_state.pt', model_name='MLP', is_rnn=False)
+train(file_path='moviesense/data/reviews/cleaned_movie_reviews.csv', model_save_path='moviesense/data/cbow/cbow_model_weights.pth')
