@@ -56,9 +56,11 @@ class MLP(nn.Module):
         Returns:
             torch.Tensor: The raw logits of the model.
         """
+        print('x shape: ', x.shape)
         for i, fc in enumerate(self.mlp):
             if i == 0:
                 output = fc(x)
+                print('first output shape: ', output.shape)
             else:
                 output = fc(output)
             if i < len(self.mlp) - 1: # Apply ReLU except on the last layer

@@ -27,7 +27,7 @@ class MovieReviewsDataset(Dataset):
         # Vectorize text data
         self.vectorized_text = self.vectorizer.transform(self.reviews['review'])
         self.encoded_labels = self.le.transform(self.reviews['sentiment'])
-        
+                
     def __len__(self) -> int:
         return len(self.reviews)
 

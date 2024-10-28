@@ -17,7 +17,7 @@ from torch import optim
 from torch.utils.data import DataLoader, random_split
 from sklearn.metrics import precision_score, recall_score, f1_score
 
-def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def collate_batch(batch: tuple[list[int], int, int], model_name: str) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Collates a batch of data for the DataLoader.
 
@@ -36,18 +36,23 @@ def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torc
             labels (torch.Tensor): A tensor of shape (batch_size,) containing the labels.
             lengths (torch.Tensor): A tensor of shape (batch_size,) containing the original lengths of the sequences.
     """
-    sequences, encoded_labels, lengths = zip(*batch)
+    sequences, labels, lengths = zip(*batch)
     
+    if model_name == 'MLP':
+        sequences = [torch.tensor(seq, dtype=torch.float) for seq in sequences]
+    else:
+        sequences = [torch.tensor(seq) for seq in sequences]
+        
     # Pad sequences to match the longest one in the batch
-    padded_sequences = nn.utils.rnn.pad_sequence([torch.tensor(seq) for seq in sequences], batch_first=True, padding_value=0)
+    sequences = nn.utils.rnn.pad_sequence(sequences, batch_first=True, padding_value=0)
         
     # Covert labels and lengths to Tensors
-    encoded_labels = torch.tensor(encoded_labels, dtype=torch.float)
+    labels = torch.tensor(labels, dtype=torch.float)
     lengths = torch.tensor(lengths, dtype=torch.long)
         
-    return padded_sequences, encoded_labels, lengths
+    return sequences, labels, lengths
 
-def create_dataloaders(file_path: str, batch_size: int, train_split: float, val_split: float, is_rnn: bool = True) -> tuple[DataLoader, DataLoader, DataLoader]:
+def create_dataloaders(file_path: str, model_name: str, batch_size: int, train_split: float, val_split: float, is_rnn: bool = True) -> tuple[DataLoader, DataLoader, DataLoader]:
     """
     Creates custom datasets and dataloaders for training and testing.
 
@@ -75,9 +80,9 @@ def create_dataloaders(file_path: str, batch_size: int, train_split: float, val_
     train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
 
     # Create dataloaders for the training, validation, and testing sets
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_batch)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_batch)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=lambda batch: collate_batch(batch, model_name))
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=lambda batch: collate_batch(batch, model_name))
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=lambda batch: collate_batch(batch, model_name))
     
     return train_dataloader, val_dataloader, test_dataloader, dataset
 
@@ -90,9 +95,7 @@ def initialize_model(model_name: str, vocab_size: int, device: torch.device, bid
         model = GRU(vocab_size=vocab_size, bidirectional=bidirectional).to(device)
     elif model_name in ['LSTM', 'BiLSTM']:
         model = LSTM(vocab_size=vocab_size, bidirectional=bidirectional).to(device)
-    else:
-        raise ValueError(f'Invalid model name "{model_name}". Expected one of MLP, RNN, GRU, LSTM, BiRNN, BiGRU, or BiLSTM.')
-    
+            
     return model
 
 def train_one_epoch(model: MLP | RNN | GRU | LSTM, iterator: DataLoader, optimizer: optim.SGD, device: torch.device, pad_index: int = 0) -> tuple[float, float]:
@@ -119,18 +122,18 @@ def train_one_epoch(model: MLP | RNN | GRU | LSTM, iterator: DataLoader, optimiz
     model.train() 
      
     for batch in iterator:
-        # Get the padded sequences, labels and lengths from batch 
-        padded_sequences, labels, lengths = batch
+        # Get the sequences, labels and lengths from batch 
+        sequences, labels, lengths = batch
         
         # Move input and expected label to GPU 
-        padded_sequences = padded_sequences.to(device)
+        sequences = sequences.to(device)
         labels = labels.to(device)
         
         # Reset the gradients after every batch
         optimizer.zero_grad()   
                 
         # Get expected predictions
-        predictions = model(padded_sequences, lengths).squeeze()
+        predictions = model(sequences, lengths).squeeze()
                 
         # Compute the loss
         loss = F.binary_cross_entropy_with_logits(predictions, labels) 
@@ -186,7 +189,7 @@ def evaluate_one_epoch(model: MLP | RNN | GRU | LSTM, iterator: DataLoader, devi
     with torch.no_grad(): # Deactivates autograd (no gradients needed)
         
         for batch in iterator:
-            # Get the padded sequences, labels and lengths from batch 
+            # Get the sequences, labels and lengths from batch 
             padded_sequences, labels, lengths = batch
                         
             # Move sequences and expected labels to GPU
@@ -221,8 +224,71 @@ def evaluate_one_epoch(model: MLP | RNN | GRU | LSTM, iterator: DataLoader, devi
     accuracy = correct / len(all_labels)
     
     return epoch_loss / len(iterator), accuracy.item()
+
+def evaluate(model: MLP | RNN | GRU | LSTM, iterator: DataLoader, device: torch.device) -> tuple[float, float, float, float]:
+    """
+    Evaluates the model on the testing set.
+
+    Args:
+        model (RNN): The model to be evaulated on. 
+        iterator (DataLoader): The DataLoader containing the testing data.
+        device (torch.device): The device to test the model on (CPU or GPU).
+
+    Returns:
+        tuple(float, float, float, float): A tuple containing:
+            float: The accuracy over the testing set.
+            float: The precision score.
+            float: The recall score.
+            float: The F1 score.
+    """
+    all_predictions = []
+    all_labels = []
+    
+    # Set the model in evaluation mode (disables dropout, etc.)
+    model.eval()
+    with torch.no_grad(): # Deactivates autograd (no gradients needed)
         
-def train(file_path: str, model_save_path: str, model_name: str = 'RNN', is_rnn: bool = True, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 60, 
+        for batch in iterator:
+            # Get the sequences, labelsand lengths from batch 
+            sequences, labels, lengths = batch
+                        
+            # Move sequences and expected labels to GPU
+            sequences = sequences.to(device)
+            labels = labels.to(device)
+            
+            # Get expected predictions
+            predictions = model(sequences, lengths).squeeze()
+            
+            # Apply the sigmoid function and round to get binary predictions
+            predicted_labels = torch.round(F.sigmoid(predictions))
+            
+            # Store predictions and labels for metric calculations
+            all_predictions.append(predicted_labels.detach().cpu())
+            all_labels.append(labels.detach().cpu())
+            
+    # Concatenate all predictions and labels
+    all_predictions = torch.cat(all_predictions)
+    all_labels = torch.cat(all_labels)
+    
+    # Compute accuracy
+    correct = (all_predictions == all_labels).float().sum()
+    accuracy = correct / len(all_labels)
+    
+     # Convert tensors to numpy arrays for sklearn metric calculations
+    all_predictions_np = all_predictions.numpy()
+    all_labels_np = all_labels.numpy()
+    
+    # Compute precision, recall, and F1-score using sklearn
+    precision = precision_score(all_labels_np, all_predictions_np)
+    recall = recall_score(all_labels_np, all_predictions_np)
+    f1 = f1_score(all_labels_np, all_predictions_np)
+    
+    return accuracy, precision, recall, f1
+
+def valid_model_name(model_name: str):
+    return model_name and model_name in ['MLP', 'RNN', 'BiRNN', 'GRU', 'BiGRU', 'LSTM', 'BiLSTM']
+        
+def train(file_path: str, model_save_path: str, model_name: str = 'RNN', is_rnn: bool = True, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 10, 
                lr: float = 1e-5, weight_decay: float = 1e-5) -> None:
     """
     Trains a model used for sentiment analysis.
@@ -237,10 +303,14 @@ def train(file_path: str, model_save_path: str, model_name: str = 'RNN', is_rnn:
         n_epochs (int, optional): The number of epochs to train the model. Defaults to 10.
         lr (float, optional): The learning rate. Defaults to 1e-5.
         weight_decay (float, optional): L2 regularization. Defaults to 1e-5.
-    """   
+    """  
+    # Error checking
+    if not valid_model_name(model_name=model_name):
+        raise ValueError(f'Invalid model name "{model_name}". Expected one of MLP, RNN, GRU, LSTM, BiRNN, BiGRU, or BiLSTM.')
+
     # Get the training, validation and testing dataloaders
     train_dataloader, val_dataloader, test_dataloader, dataset = create_dataloaders(
-        file_path=file_path, batch_size=batch_size, train_split=train_ratio, val_split=val_ratio, is_rnn=is_rnn
+        file_path=file_path, model_name=model_name, batch_size=batch_size, train_split=train_ratio, val_split=val_ratio, is_rnn=is_rnn
     )
 
     # Get the GPU device (if it exists)
@@ -302,65 +372,5 @@ def train(file_path: str, model_save_path: str, model_name: str = 'RNN', is_rnn:
     print(f'Precision: {precision * 100:.2f}%')    
     print(f'Recall: {recall * 100:.2f}%')    
     print(f'F1 Score: {f1 * 100:.2f}%')   
-    
-def evaluate(model: RNN, iterator: DataLoader, device: torch.device) -> tuple[float, float, float, float]:
-    """
-    Evaluates the model on the testing set.
 
-    Args:
-        model (RNN): The model to be evaulated on. 
-        iterator (DataLoader): The DataLoader containing the testing data.
-        device (torch.device): The device to test the model on (CPU or GPU).
-
-    Returns:
-        tuple(float, float, float, float): A tuple containing:
-            float: The accuracy over the testing set.
-            float: The precision score.
-            float: The recall score.
-            float: The F1 score.
-    """
-    all_predictions = []
-    all_labels = []
-    
-    # Set the model in evaluation mode (disables dropout, etc.)
-    model.eval()
-    with torch.no_grad(): # Deactivates autograd (no gradients needed)
-        
-        for batch in iterator:
-            # Get the padded sequences and labels from batch 
-            padded_sequences, labels, lengths = batch
-                        
-            # Move sequences and expected labels to GPU
-            padded_sequences = padded_sequences.to(device)
-            labels = labels.to(device)
-            
-            # Get expected predictions
-            predictions = model(padded_sequences, lengths).squeeze()
-            
-            # Apply the sigmoid function and round to get binary predictions
-            predicted_labels = torch.round(F.sigmoid(predictions))
-            
-            # Store predictions and labels for metric calculations
-            all_predictions.append(predicted_labels.detach().cpu())
-            all_labels.append(labels.detach().cpu())
-            
-    # Concatenate all predictions and labels
-    all_predictions = torch.cat(all_predictions)
-    all_labels = torch.cat(all_labels)
-    
-    # Compute accuracy
-    correct = (all_predictions == all_labels).float().sum()
-    accuracy = correct / len(all_labels)
-    
-     # Convert tensors to numpy arrays for sklearn metric calculations
-    all_predictions_np = all_predictions.numpy()
-    all_labels_np = all_labels.numpy()
-    
-    # Compute precision, recall, and F1-score using sklearn
-    precision = precision_score(all_labels_np, all_predictions_np)
-    recall = recall_score(all_labels_np, all_predictions_np)
-    f1 = f1_score(all_labels_np, all_predictions_np)
-    
-    return accuracy, precision, recall, f1
-
-train(file_path='moviesense/data/reviews/cleaned_movie_reviews.csv', model_save_path='moviesense/data/models/model_saved_state.pt', model_name='MLP', is_rnn=False)
+# train(file_path='moviesense/data/reviews/cleaned_movie_reviews.csv', model_save_path='moviesense/data/models/model_saved_state.pt', model_name='MLP', is_rnn=False)
