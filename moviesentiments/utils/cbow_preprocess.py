@@ -1,33 +1,3 @@
-import pandas as pd
-
-def tokenize_and_build_vocab(text: pd.Series, min_token_length: int = 1) -> dict:
-    """
-    Tokenizes text and builds the vocabulary with the specified minimum token length. It is assumed that the text has been preprocessed.
-
-    Args:
-        text (list): The processed text containing all reviews.
-        min_token_length (int): Minimum length of tokens to keep in the vocabulary. Default is 2.
-
-    Returns:
-        dict: The resulting vocabulary built from the unique tokens in the text.
-    """
-    tokenized_sentences = []
-    all_tokens = []
-
-    for sentence in text:
-        # Tokenize and filter tokens based on min_token_length
-        tokens = [token for token in sentence.split() if len(token) >= min_token_length]
-        tokenized_sentences.append(tokens)
-        all_tokens.extend(tokens)
-
-    # Create the vocabulary with filtered tokens (mapping tokens to indices)
-    unique_tokens = set(all_tokens)
-    vocab = {token: idx for idx, token in enumerate(unique_tokens)}
-    vocab.update({token: len(vocab) + i for i, token in enumerate(['<pad>', '<unk>'])})
-
-    # Create the vocabulary (mapping tokens to indices)
-    return tokenized_sentences, vocab
-
 def generate_context_target_pairs(text: list, vocab: dict, window_size: int = 2) -> list:
     """
     Generates context-target pairs for CBOW without padding, ensuring each target has a full context.

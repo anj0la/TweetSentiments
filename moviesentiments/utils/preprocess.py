@@ -115,5 +115,31 @@ def preprocess(file_path: str, output_file_path: str) -> None:
     # Save data to new CSV file
     save_to_csv(cleaned_text, encoded_labels, output_file_path)
 
-def text_to_sequence(text, vocab, unk_index):
+def word_to_idx(text, vocab, unk_index):
     return [vocab.get(word, unk_index) for word in text.split()]
+
+def build_vocab(text: pd.Series, min_token_length: int = 1) -> dict:
+    """
+    Tokenizes text and builds the vocabulary with the specified minimum token length. It is assumed that the text has been preprocessed.
+
+    Args:
+        text (list): The processed text containing all reviews.
+        min_token_length (int): Minimum length of tokens to keep in the vocabulary. Default is 2.
+
+    Returns:
+        dict: The resulting vocabulary built from the unique tokens in the text.
+    """
+    all_tokens = []
+
+    for sentence in text:
+        # Tokenize and filter tokens based on min_token_length
+        tokens = [token for token in sentence.split() if len(token) >= min_token_length]
+        all_tokens.extend(tokens)
+
+    # Create the vocabulary with filtered tokens (mapping tokens to indices)
+    unique_tokens = set(all_tokens)
+    vocab = {token: idx for idx, token in enumerate(unique_tokens)}
+    vocab.update({token: len(vocab) + i for i, token in enumerate(['<pad>', '<unk>'])})
+
+    # Create the vocabulary (mapping tokens to indices)
+    return vocab

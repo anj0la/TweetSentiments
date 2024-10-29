@@ -15,7 +15,7 @@ from models.logistic_regression import LogisticRegression
 from models.mlp import MLP
 from models.rnn import RNN, GRU, LSTM
 from train_rnn import initialize_model
-from utils.preprocess import clean_review, text_to_sequence
+from utils.preprocess import clean_review, word_to_idx
 
 def load_model(vocab: dict[str, int], model_name: str) -> LogisticRegression | MLP | RNN | GRU | LSTM:
     if model_name == 'LR':
@@ -82,7 +82,7 @@ def run_model(sentence: str, model_name: str = 'LR') -> None:
         vectorized_sentence = vectorizer.transform(cleaned_sentence).toarray()
         prediction = make_prediction(vectorized_sentence, model_name, model)
     else: # RNN-like model (exception is caught when making the model)
-        encoded_sentence = text_to_sequence(' '.join(cleaned_sentence.tolist()), vocab, len(vocab) + 1)
+        encoded_sentence = word_to_idx(' '.join(cleaned_sentence.tolist()), vocab, len(vocab) + 1)
         prediction = make_prediction(encoded_sentence, model_name, model)
     
     label = le.inverse_transform(prediction)

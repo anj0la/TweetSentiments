@@ -37,7 +37,7 @@ def plot_accuracy(x_axis: list[int], train_accuracy: list[float], val_accuracy: 
     # Save the plot
     plt.savefig(figure_path)
 
-    # plt.show()
+    plt.show()
         
 def plot_loss(x_axis: list[int], train_losses: list[float], val_losses: list[float] | None, figure_path: str) -> None:
     """
@@ -68,25 +68,5 @@ def plot_loss(x_axis: list[int], train_losses: list[float], val_losses: list[flo
     # Save the plot
     plt.savefig(figure_path)
         
-    # plt.show()
-    
-def plot_pca(embeddings: np.ndarray, vocab: dict, figure_path: str):
-    pca = PCA(n_components=2)
-    reduced_embeddings = pca.fit_transform(embeddings)
-
-    # Visualize the embeddings
-    plt.figure(figsize=(8, 8))
-    for i, word in enumerate(vocab):
-        x, y = reduced_embeddings[i]
-        plt.scatter(x, y)
-        plt.annotate(word, xy=(x, y), xytext=(5, 2),
-                    textcoords='offset points',
-                    ha='right', va='bottom')
-
-    plt.title('PCA Visualization of Word Embeddings')
-    plt.grid(True)
-    
-    # Save the plot
-    plt.savefig(figure_path)
-    
     plt.show()
+    

@@ -9,7 +9,8 @@ This file contains all the necessary functions used to train an RNN-like model.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from moviesense.data.datasets import MovieReviewsDataset
+from data.datasets import MovieReviewsDataset
+from models.logistic_regression import LogisticRegression
 from models.mlp import MLP
 from models.rnn import RNN, GRU, LSTM
 from utils.plot_graphs import plot_accuracy, plot_loss
@@ -17,7 +18,7 @@ from torch import optim
 from torch.utils.data import DataLoader, random_split
 from sklearn.metrics import precision_score, recall_score, f1_score
 
-def collate_batch(batch: tuple[list[int], int, int], model_name: str) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Collates a batch of data for the DataLoader.
 
@@ -37,14 +38,9 @@ def collate_batch(batch: tuple[list[int], int, int], model_name: str) -> tuple[t
             lengths (torch.Tensor): A tensor of shape (batch_size,) containing the original lengths of the sequences.
     """
     sequences, labels, lengths = zip(*batch)
-    
-    if model_name == 'MLP':
-        sequences = [torch.tensor(seq, dtype=torch.float) for seq in sequences]
-    else:
-        sequences = [torch.tensor(seq) for seq in sequences]
-        
+            
     # Pad sequences to match the longest one in the batch
-    sequences = nn.utils.rnn.pad_sequence(sequences, batch_first=True, padding_value=0)
+    sequences = nn.utils.rnn.pad_sequence([torch.tensor(seq) for seq in sequences], batch_first=True, padding_value=0)
         
     # Covert labels and lengths to Tensors
     labels = torch.tensor(labels, dtype=torch.float)
@@ -52,7 +48,7 @@ def collate_batch(batch: tuple[list[int], int, int], model_name: str) -> tuple[t
         
     return sequences, labels, lengths
 
-def create_dataloaders(file_path: str, model_name: str, batch_size: int, train_split: float, val_split: float, is_rnn: bool = True) -> tuple[DataLoader, DataLoader, DataLoader]:
+def create_dataloaders(file_path: str, batch_size: int, train_split: float, val_split: float, is_rnn: bool = True) -> tuple[DataLoader, DataLoader, DataLoader]:
     """
     Creates custom datasets and dataloaders for training and testing.
 
@@ -80,14 +76,16 @@ def create_dataloaders(file_path: str, model_name: str, batch_size: int, train_s
     train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
 
     # Create dataloaders for the training, validation, and testing sets
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=lambda batch: collate_batch(batch, model_name))
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=lambda batch: collate_batch(batch, model_name))
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=lambda batch: collate_batch(batch, model_name))
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_batch)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_batch)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_batch)
     
     return train_dataloader, val_dataloader, test_dataloader, dataset
 
 def initialize_model(model_name: str, vocab_size: int, device: torch.device, bidirectional: bool = False):
-    if model_name == 'MLP':
+    if model_name == 'LR':
+        model = LogisticRegression(vocab_size=vocab_size).to(device)
+    elif model_name == 'MLP':
         model = MLP(vocab_size=vocab_size).to(device)
     elif model_name in ['RNN', 'BiRNN']:
         model = RNN(vocab_size=vocab_size, bidirectional=bidirectional).to(device)
@@ -98,7 +96,7 @@ def initialize_model(model_name: str, vocab_size: int, device: torch.device, bid
             
     return model
 
-def train_one_epoch(model: MLP | RNN | GRU | LSTM, iterator: DataLoader, optimizer: optim.SGD, device: torch.device, pad_index: int = 0) -> tuple[float, float]:
+def train_one_epoch(model: LogisticRegression | MLP | RNN | GRU | LSTM, iterator: DataLoader, optimizer: optim.SGD, device: torch.device, criteron: nn.BCEWithLogitsLoss, pad_index: int) -> tuple[float, float]:
     """
     Trains the model for one epoch.
 
@@ -137,6 +135,7 @@ def train_one_epoch(model: MLP | RNN | GRU | LSTM, iterator: DataLoader, optimiz
                 
         # Compute the loss
         loss = F.binary_cross_entropy_with_logits(predictions, labels) 
+        loss = criteron(predictions, labels)
         
         # Mask the loss to ignore padded values
         mask = (labels != pad_index).float()
@@ -165,7 +164,7 @@ def train_one_epoch(model: MLP | RNN | GRU | LSTM, iterator: DataLoader, optimiz
         
     return epoch_loss / len(iterator), accuracy.item()
 
-def evaluate_one_epoch(model: MLP | RNN | GRU | LSTM, iterator: DataLoader, device: torch.device, pad_index: int = 0) -> tuple[float, float]:
+def evaluate_one_epoch(model: MLP | RNN | GRU | LSTM, iterator: DataLoader, device: torch.device, criteron: nn.BCEWithLogitsLoss, pad_index: int) -> tuple[float, float]:
     """
     Evaluates the model on the validation set.
 
@@ -201,6 +200,7 @@ def evaluate_one_epoch(model: MLP | RNN | GRU | LSTM, iterator: DataLoader, devi
             
             # Compute the loss
             loss = F.binary_cross_entropy_with_logits(predictions, labels)
+            loss = criteron(predictions, labels)
             
             # Mask the loss to ignore padded values
             mask = (labels != pad_index).float()
@@ -286,9 +286,9 @@ def evaluate(model: MLP | RNN | GRU | LSTM, iterator: DataLoader, device: torch.
     return accuracy, precision, recall, f1
 
 def valid_model_name(model_name: str):
-    return model_name and model_name in ['MLP', 'RNN', 'BiRNN', 'GRU', 'BiGRU', 'LSTM', 'BiLSTM']
+    return model_name and model_name in ['LR', 'MLP', 'RNN', 'BiRNN', 'GRU', 'BiGRU', 'LSTM', 'BiLSTM']
         
-def train(file_path: str, model_save_path: str, model_name: str = 'RNN', is_rnn: bool = True, train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 10, 
+def train(file_path: str, model_save_path: str, model_name: str = 'MLP', train_ratio: int = 0.6, val_ratio: int = 0.2, batch_size: int = 32, n_epochs: int = 10, 
                lr: float = 1e-5, weight_decay: float = 1e-5) -> None:
     """
     Trains a model used for sentiment analysis.
@@ -306,11 +306,11 @@ def train(file_path: str, model_save_path: str, model_name: str = 'RNN', is_rnn:
     """  
     # Error checking
     if not valid_model_name(model_name=model_name):
-        raise ValueError(f'Invalid model name "{model_name}". Expected one of MLP, RNN, GRU, LSTM, BiRNN, BiGRU, or BiLSTM.')
+        raise ValueError(f'Invalid model name "{model_name}". Expected one of LR, MLP, RNN, GRU, LSTM, BiRNN, BiGRU, or BiLSTM.')
 
     # Get the training, validation and testing dataloaders
     train_dataloader, val_dataloader, test_dataloader, dataset = create_dataloaders(
-        file_path=file_path, model_name=model_name, batch_size=batch_size, train_split=train_ratio, val_split=val_ratio, is_rnn=is_rnn
+        file_path=file_path, batch_size=batch_size, train_split=train_ratio, val_split=val_ratio
     )
 
     # Get the GPU device (if it exists)
@@ -318,7 +318,7 @@ def train(file_path: str, model_save_path: str, model_name: str = 'RNN', is_rnn:
     print(device)
     
     # Create the model
-    model = initialize_model(model_name=model_name, vocab_size=len(dataset.vocabulary), device=device, bidirectional=('Bi' in model_name))
+    model = initialize_model(model_name=model_name, vocab_size=len(dataset.vocab), device=device, bidirectional=('Bi' in model_name))
     print(model)
     
     print(f'lr: {lr}, weight_decay: {weight_decay}')
