@@ -62,7 +62,7 @@ def train_one_epoch(model: CBOW, iterator: DataLoader, optimizer: optim.Adam, de
         
     return epoch_loss / len(iterator)
         
-def train(file_path: str, model_save_path: str, batch_size: int = 32, n_epochs: int = 10, lr: float = 1e-2) -> None:   
+def train(file_path: str, model_save_path: str, batch_size: int = 32, n_epochs: int = 25, lr: float = 1e-3) -> None:   
     # Get the dataloader and vocab
     dataloader, vocab = create_dataloader(file_path=file_path, batch_size=batch_size)
 
@@ -101,7 +101,7 @@ def train(file_path: str, model_save_path: str, batch_size: int = 32, n_epochs: 
         
         # Print metrics
         print(f'\t Epoch: {epoch + 1} out of {n_epochs}')
-        print(f'\t Train Loss: {loss:.3f} | Duration {epoch_duration:.2f}')
+        print(f'\t Train Loss: {loss:.3f} | Duration: {epoch_duration / 60:.2f}')
         
     # Calculate total training time
     total_duration = time.time() - overall_start_time

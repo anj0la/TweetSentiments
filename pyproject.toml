@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "MovieSense"
+name = "MovieSentiments"
 version = "1.0"
 description = "A sentiment classifier for movie reviews."
 readme = "README.md"
