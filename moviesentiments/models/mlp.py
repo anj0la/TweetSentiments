@@ -23,7 +23,7 @@ import torch
 import torch.nn as nn
 
 class MLP(nn.Module):
-    def __init__(self, vocab_size: int, hidden_dims: list[int] = [128, 64, 32, 16], output_dim: int = 1, dropout: float = 0.2) -> None:
+    def __init__(self, vocab_size: int, embedding_dim: int = 100, use_embedding_layer: bool = True, hidden_dims: list[int] = [128, 64, 32, 16], output_dim: int = 1, dropout: float = 0.2, pad_index: int = 0) -> None:
         """
         Represents a multilayer perceptron (MLP) consisting of a dynamic number of hidden layers to increase the complexity and depth of the MLP.
 
@@ -34,11 +34,19 @@ class MLP(nn.Module):
             dropout (float, optional): The dropout layer. Defaults to 0.2.
         """
         super(MLP, self).__init__()
+        
+        # Embedding layer (only use if not learning embeddings through another model)
+        self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim, padding_idx=pad_index)
                 
         # MLP layer
-        self.mlp = nn.ModuleList(
+        if use_embedding_layer:
+            self.mlp = nn.ModuleList(
+            [nn.Linear(embedding_dim, hidden_dims[0])]            
+            ).extend([nn.Linear(hidden_dims[i], hidden_dims[i + 1]) if i < len(hidden_dims) - 1 else nn.Linear(hidden_dims[i], output_dim) for i in range(len(hidden_dims))])
+        else:
+            self.mlp = nn.ModuleList(
             [nn.Linear(vocab_size, hidden_dims[0])]            
-        ).extend([nn.Linear(hidden_dims[i], hidden_dims[i + 1]) if i < len(hidden_dims) - 1 else nn.Linear(hidden_dims[i], output_dim) for i in range(len(hidden_dims))])
+            ).extend([nn.Linear(hidden_dims[i], hidden_dims[i + 1]) if i < len(hidden_dims) - 1 else nn.Linear(hidden_dims[i], output_dim) for i in range(len(hidden_dims))])
         
         # Activation function (for hidden layers)
         self.relu = nn.ReLU()
@@ -46,7 +54,10 @@ class MLP(nn.Module):
         # Dropout layer
         self.dropout = nn.Dropout(dropout)
         
-    def forward(self, x: torch.Tensor, lengths: int = None) -> torch.Tensor:
+        # Used to skip embedding layer if using the model as a pure MLP
+        self.use_embedding_layer = use_embedding_layer
+        
+    def forward(self, input: torch.Tensor, lengths: int = None) -> torch.Tensor:
         """
         Implements the forward pass for the MLP.
         
@@ -56,13 +67,17 @@ class MLP(nn.Module):
         Returns:
             torch.Tensor: The raw logits of the model.
         """
-        print('x shape: ', x.shape)
+        # Learn word embeddings
+        if self.use_embedding_layer:
+            embeddings = self.embedding(input)
+            avg_embeddings = embeddings.mean(dim=1)
+            output = avg_embeddings
+        # Use model as pure MLP (no learning word embeddings - assumed it is learned from a different model)
+        else:
+            output = input
+            
         for i, fc in enumerate(self.mlp):
-            if i == 0:
-                output = fc(x)
-                print('first output shape: ', output.shape)
-            else:
-                output = fc(output)
+            output = fc(output)
             if i < len(self.mlp) - 1: # Apply ReLU except on the last layer
                 output = self.relu(output)
                 output = self.dropout(output)

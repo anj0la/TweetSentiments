@@ -9,16 +9,18 @@ This file contains all the necessary functions used to train an RNN-like model.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import time
 from data.datasets import MovieReviewsDataset
 from models.logistic_regression import LogisticRegression
 from models.mlp import MLP
 from models.rnn import RNN, GRU, LSTM
-from utils.plot_graphs import plot_accuracy, plot_loss
+from sklearn.metrics import precision_score, recall_score, f1_score
 from torch import optim
 from torch.utils.data import DataLoader, random_split
-from sklearn.metrics import precision_score, recall_score, f1_score
+from tqdm import tqdm
+from utils.plot_graphs import plot_accuracy, plot_loss
 
-def collate_batch(batch: tuple[list[int], int, int]) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def collate_batch(batch: tuple[list[int], int, int], pad_index: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Collates a batch of data for the DataLoader.
 
@@ -119,10 +121,7 @@ def train_one_epoch(model: LogisticRegression | MLP | RNN | GRU | LSTM, iterator
     # Set the model in the training phase
     model.train() 
      
-    for batch in iterator:
-        # Get the sequences, labels and lengths from batch 
-        sequences, labels, lengths = batch
-        
+    for sequences, labels, lengths in tqdm(iterator, desc='Training...', leave=False):
         # Move input and expected label to GPU 
         sequences = sequences.to(device)
         labels = labels.to(device)
@@ -187,16 +186,14 @@ def evaluate_one_epoch(model: MLP | RNN | GRU | LSTM, iterator: DataLoader, devi
     model.eval()
     with torch.no_grad(): # Deactivates autograd (no gradients needed)
         
-        for batch in iterator:
-            # Get the sequences, labels and lengths from batch 
-            padded_sequences, labels, lengths = batch
+        for sequences, labels, lengths in tqdm(iterator, desc='Evaluating...', leave=False):
                         
             # Move sequences and expected labels to GPU
-            padded_sequences = padded_sequences.to(device)
+            sequences = sequences.to(device)
             labels = labels.to(device)
             
             # Get expected predictions
-            predictions = model(padded_sequences, lengths).squeeze()
+            predictions = model(sequences, lengths).squeeze()
             
             # Compute the loss
             loss = F.binary_cross_entropy_with_logits(predictions, labels)
